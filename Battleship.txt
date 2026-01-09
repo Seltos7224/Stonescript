@@ -1,16 +1,13 @@
 /*
---------Game of Battleship (1.0.0-beta.1)--------
+--------Game of Battleship (v1.0.0-beta.2)--------
 Creator: Davit
-Discord: pacz7224
+Discord: seltos7224
+
+-== Changelog ==-
 */
 
 
-/* var Mindstone
-?totaltime = 1
-  Mindstone = import UI/MindstoneButton
-  Mindstone.Display(true,true,true,true) */
-
-
+  // Tile IDs
 // 0 - restricted tile
 // 1 - empty tile
 // 2 - ship tile
@@ -46,6 +43,16 @@ var ship4  // 4-tile ship
 var ship3  // 3-tile ship
 var ship2  // 2-tile ship
 var ship1  // 1-tile ship
+var ship4text  // text for ship4
+var ship3text  // text for ship3
+var ship2text  // text for ship2
+var ship1text  // text for ship1
+var ship2horizontal = ["#,#│\n▼▲▼▲", ">###\n▼▲▼#"]  // horizontal 2-tile ship ascii
+var ship3horizontal = ["#,#╞\n▼▲▼▲", "╬#╤═\n▼▲▼▲", ">###\n▼▲▼#"]  // horizontal 3-tile ship ascii
+var ship4horizontal = ["#┌o#\n▼▲▼▲", "_▄╞╬\n▼▲▼▲", "#┌☼♂\n▼▲▼▲", "☼┐##\n▼▲▼#"]  // horizontal 4-tile ship ascii
+var ship2vertical = ["#^##\n/ \#", "│⌐φ•\n\_/#"]  // vertical 2-tile ship ascii
+var ship3vertical = ["#^##\n/ \#", "│ φ═\n│ │#", "\☼/#\n#¯##"]  // vertical 3-tile ship ascii
+var ship4vertical = ["#^##\n/ \#", "│ │#\n│ φ═", "│ φ═\n│ │#", "\☼/#\n#V##"]  // vertical 4-tile ship ascii
 var selectedShipSize = 4  // Size of the selected ship. Default: 4
 var rotateButton  // Changes ship orientation
 var rotateButtonText  // Text for rotateButton
@@ -54,6 +61,7 @@ var shipTileCount = 20  // Total ship tiles per board
 var previewedShipCoords = []  // Storing previewed ship coordinates
 var placedShipCoords = []  // Storing placed ship coordinates
 var placedShipCoordsFlattened = []  // Storing placed ship coordinates (flattened)
+var placedEnemyShipCoords = []  // Storing placed enemy ship coordinates
 var bgPanel  // Covers the background
 var playerGridPanel  // Player board panel
 var enemyGridPanel  // Enemy board panel
@@ -61,6 +69,34 @@ var pTiles = []  // Player board tiles
 var eTiles = []  // Enemy board tiles
 var pButtons = []  // Player board buttons
 var eButtons = []  // Enemy board buttons
+var pButtonText = []  // Player board ascii
+var eButtonText = []  // Enemy board ascii
+var pCoords  // Coordinates
+var eCoords  // Coordinates
+var coordText = ascii
+##1·##2·##3·##4·##5·##6·##7·##8·##9·##10#
+A
+·
+B
+·
+C
+·
+D
+·
+E
+·
+F
+·
+G
+·
+H
+·
+I
+·
+J
+·
+asciiend
+var shipCounter  // Displays ships remaining of both sides
 var ships = [4, 3, 3, 2, 2, 2, 1, 1, 1, 1]  // All ship sizes
 var directions = [  // Ship direction [y, x]
   [1, 0],  // vertical
@@ -82,12 +118,17 @@ var score  // Total score
 var victoryPanel  // A panel announcing victory
 var victoryText  // UI text for victoryPanel
 var generateVictoryPanel = -1  // Custom 3-value boolean (1 - do, 0 - don't, -1 - idle)
+var confirmActionPanel  // Confirm action pop-up
+var confirmActionText  // Text on the panel
+var confirmActionButton  // Confirm button
+var cancelActionButton  // Cancel button
 var infoPanel  // A panel that shows information about the game
 var infoText  // The text in infoPanel
-var infoButton  // This button enables infoPanel
+var infoButton  // infoPanel toggle button
+var infoBtnText  // Additional text written on infoButton
 
 // Add UI components
-?loc = Waterfall & loc.begin
+?loc = "Waterfall" & loc.begin
   // Play button
   playButton = AddUI(button, center_center, center_center, 30, 7, 20, -2)
   playButton.text = ""
@@ -139,37 +180,78 @@ asciiend
   playerGridPanel = AddUI(panel, center_right, center_center, 42, 22, -1, 2)
   playerGridPanel.visible = false
   BoardReset(pButtons)
+  BoardReset(pButtonText)
   for y = 0..9
     for x = 0..9
+        // Buttons
       pButtons[y][x] = ui.AddButton()
       playerGridPanel.Add(pButtons[y][x])
       pButtons[y][x].anchor = top_left
       pButtons[y][x].dock = top_left
-      pButtons[y][x].x = x*(playerGridPanel.w / 10) + 1
-      pButtons[y][x].y = y*(playerGridPanel.h / 10) + 1
-      pButtons[y][x].w = (playerGridPanel.w - 2)/10
-      pButtons[y][x].h = (playerGridPanel.h - 2)/10
-      pButtons[y][x].text = "7"
-      pButtons[y][x].tcolor = "#00aaff"
+      pButtons[y][x].x = x * (playerGridPanel.w / 10) + 1
+      pButtons[y][x].y = y * (playerGridPanel.h / 10) + 1
+      pButtons[y][x].w = (playerGridPanel.w - 2) / 10
+      pButtons[y][x].h = (playerGridPanel.h - 2) / 10
       pButtons[y][x].style = 0
+      pButtons[y][x].text = "#"
+        // Text
+      pButtonText[y][x] = ui.AddText()
+      playerGridPanel.Add(pButtonText[y][x])
+      pButtonText[y][x].anchor = top_left
+      pButtonText[y][x].dock = top_left
+      pButtonText[y][x].x = x * (playerGridPanel.w / 10) + 1
+      pButtonText[y][x].y = y * (playerGridPanel.h / 10) + 1
+      pButtonText[y][x].w = (playerGridPanel.w - 2) / 10
+      pButtonText[y][x].h = (playerGridPanel.h - 2) / 10
+      pButtonText[y][x].text = "#"
+      pButtonText[y][x].color = "#00aaff"
     // Enemy
   enemyGridPanel = AddUI(panel, center_left, center_center, 42, 22, 1, 2)
   enemyGridPanel.visible = false
   BoardReset(eButtons)
+  BoardReset(eButtonText)
   for y = 0..9
     for x = 0..9
+        // Button
       eButtons[y][x] = ui.AddButton()
       enemyGridPanel.Add(eButtons[y][x])
       eButtons[y][x].anchor = top_left
       eButtons[y][x].dock = top_left
-      eButtons[y][x].x = x*(enemyGridPanel.w/10) + 1
-      eButtons[y][x].y = y*(enemyGridPanel.h/10) + 1
-      eButtons[y][x].w = (enemyGridPanel.w-2)/10
-      eButtons[y][x].h = (enemyGridPanel.h-2)/10
-      eButtons[y][x].text = "@"
-      eButtons[y][x].tcolor = "#00aaff"
+      eButtons[y][x].x = x * (enemyGridPanel.w / 10) + 1
+      eButtons[y][x].y = y * (enemyGridPanel.h / 10) + 1
+      eButtons[y][x].w = (enemyGridPanel.w - 2) / 10
+      eButtons[y][x].h = (enemyGridPanel.h - 2) / 10
       eButtons[y][x].style = 0
+      eButtons[y][x].text = "#"
       eButtons[y][x].SetPressed(AddMarker)
+        // Text
+      eButtonText[y][x] = ui.AddText()
+      enemyGridPanel.Add(eButtonText[y][x])
+      eButtonText[y][x].anchor = top_left
+      eButtonText[y][x].dock = top_left
+      eButtonText[y][x].x = x * (enemyGridPanel.w / 10) + 1
+      eButtonText[y][x].y = y * (enemyGridPanel.h / 10) + 1
+      eButtonText[y][x].w = (enemyGridPanel.w - 2) / 10
+      eButtonText[y][x].h = (enemyGridPanel.h - 2) / 10
+      eButtonText[y][x].text = "#"
+      eButtonText[y][x].color = "#00aaff"
+
+    // Coordinates
+      // Player
+  pCoords = AddUI(text, top_left, top_left, playerGridPanel.w, playerGridPanel.h, 0, 0)
+  playerGridPanel.Add(pCoords)
+  pCoords.text = coordText
+  pCoords.color = "#4c7589"
+      // Enemy
+  eCoords = AddUI(text, top_left, top_left, enemyGridPanel.w, enemyGridPanel.h, 0, 0)
+  enemyGridPanel.Add(eCoords)
+  eCoords.text = coordText
+  eCoords.color = "#4c7589"
+
+    // Remaining ships display
+  shipCounter = AddUI(text, top_right, top_left, 8, 1, 3, -2)
+  enemyGridPanel.Add(shipCounter)
+
     // Ship confirm button (player)
   confirmShips = AddUI(button, center_center, center_center, 43, 7, playerGridPanel.w + enemyGridPanel.x - playerGridPanel.x - 1, -8)
   playerGridPanel.Add(confirmShips)
@@ -183,29 +265,45 @@ asciiend
  \___)\__/ \_)__)(__)  (__)(__\_)\_)(_/
 asciiend
     // 4-tile ship
-  ship4 = AddUI(button, center_right, center_center, 16, 2, confirmShips.x, confirmShips.y + 6)
+  ship4 = AddUI(button, center_right, center_center, 19, 4, confirmShips.x + 2, confirmShips.y + 7)
   playerGridPanel.Add(ship4)
-  ship4.text = "\___.,.._I__.../"
-  ship4.style = 0
+  ship4.style = 2
+  ship4.text = ""
   ship4.SetPressed(SelectShip)
+    // ship4 text
+  ship4text = AddUI(text, center_right, center_center, 16, 2, ship4.x - 1, ship4.y)
+  playerGridPanel.Add(ship4text)
+  ship4text.text = "#┌o#_▄╞╬#┌☼♂☼┐##\n▼▲▼▲▼▲▼▲▼▲▼▲▼▲▼ "
     // 3-tile ship
-  ship3 = AddUI(button, center_left, center_center, 12, 2, confirmShips.x + 4, confirmShips.y + 6)
+  ship3 = AddUI(button, center_left, center_center, 15, 4, confirmShips.x + 3, confirmShips.y + 7)
   playerGridPanel.Add(ship3)
-  ship3.text = "\__,,._I___/"
-  ship3.style = 0
+  ship3.style = 2
+  ship3.text = ""
   ship3.SetPressed(SelectShip)
+    // ship3 text
+  ship3text = AddUI(text, center_left, center_center, 12, 2, ship3.x + 2, ship3.y)
+  playerGridPanel.Add(ship3text)
+  ship3text.text = "#,#╞╬#╤═>###\n▼▲▼▲▼▲▼▲▼▲▼#"
     // 2-tile ship
-  ship2 = AddUI(button, center_right, center_center, 8, 2, confirmShips.x, confirmShips.y + 10)
+  ship2 = AddUI(button, center_right, center_center, 11, 4, confirmShips.x + 2, confirmShips.y + 11)
   playerGridPanel.Add(ship2)
-  ship2.text = "\_,I.__/"
-  ship2.style = 0
+  ship2.style = 2
+  ship2.text = ""
   ship2.SetPressed(SelectShip)
+    // ship2 text
+  ship2text = AddUI(text, center_right, center_center, 8, 2, ship2.x - 1, ship2.y)
+  playerGridPanel.Add(ship2text)
+  ship2text.text = "#,#│>###\n▼▲▼▲▼▲▼#"
     // 1-tile ship
-  ship1 = AddUI(button, center_left, center_center, 4, 2, confirmShips.x + 4, confirmShips.y + 10)
+  ship1 = AddUI(button, center_left, center_center, 7, 4, confirmShips.x + 3, confirmShips.y + 11)
   playerGridPanel.Add(ship1)
-  ship1.text = "L__/"
-  ship1.style = 0
+  ship1.style = 2
+  ship1.text = ""
   ship1.SetPressed(SelectShip)
+    // ship1 text
+  ship1text = AddUI(text, center_left, center_center, 4, 2, ship1.x + 2, ship1.y)
+  playerGridPanel.Add(ship1text)
+  ship1text.text = "#│>#\n▼▲▼#"
     // Rotate ship button
   rotateButton = AddUI(button, center_center, center_center, 7, 3, confirmShips.x - confirmShips.w / 2 + 3, confirmShips.y + 16)
   playerGridPanel.Add(rotateButton)
@@ -235,27 +333,51 @@ asciiend
   // Victory panel
     // Panel
   victoryPanel = AddUI(panel, center_center, center_center, 24, 6, 0, 0)
-  victoryPanel.anchor = center_center
-  victoryPanel.dock = center_center
-  victoryPanel.w = 24
-  victoryPanel.h = 6
   victoryPanel.visible = false
     // Text
   victoryText = AddUI(text, center_center, center_center, 20, 2, 0, 0)
   victoryPanel.Add(victoryText)
   victoryText.align = center
     // Replay button
-  replayButton = AddUI(button, center_right, center_center, 10, 3, 0, 2)
+  replayButton = AddUI(button, center_left, center_center, 10, 3, 0, 2)
   victoryPanel.Add(replayButton)
   replayButton.style = 2
   replayButton.text = "Replay"
   replayButton.SetPressed(Start)
     // Exit to menu button
-  menuButton = AddUI(button, center_left, center_center, 10, 3, 0, 2)
+  menuButton = AddUI(button, center_right, center_center, 10, 3, 0, 2)
   victoryPanel.Add(menuButton)
   menuButton.style = 2
   menuButton.text = " Menu "
   menuButton.SetPressed(ExitToMenu)
+
+  // Confirm action pop-up panel
+    // Panel
+  confirmActionPanel = AddUI(panel, center_center, center_center, 30, 9, 0, 0)
+  confirmActionPanel.color = "#ff8000"
+  confirmActionPanel.visible = false
+    // Text
+  confirmActionText = AddUI(text, center_center, center_center, 26, 1, 0, 0)
+  confirmActionPanel.Add(confirmActionText)
+  confirmActionText.text = "Exit to main menu?"
+  confirmActionText.color = "#ff8000"
+  confirmActionText.align = center
+    // Confirm button
+  confirmActionButton = AddUI(button, center_left, center_center, 14, 3, 0, 4)
+  confirmActionPanel.Add(confirmActionButton)
+  confirmActionButton.style = 2
+  confirmActionButton.text = "Confirm "
+  confirmActionButton.tcolor = "#ffff00"
+  confirmActionButton.bcolor = "#ffff00"
+  confirmActionButton.SetPressed(ExitToMenu)
+    // Cancel button
+  cancelActionButton = AddUI(button, center_right, center_center, 14, 3, 0, 4)
+  confirmActionPanel.Add(cancelActionButton)
+  cancelActionButton.style = 2
+  cancelActionButton.text = "Cancel"
+  cancelActionButton.tcolor = "#2fabea"
+  cancelActionButton.bcolor = "#2fabea"
+  cancelActionButton.SetPressed(CancelAction)
 
   // Exit button
   exitButton = AddUI(button, top_right, top_right, 4, 3, 0, 0)
@@ -268,6 +390,11 @@ asciiend
   infoButton = AddUI(button, top_left, top_left, 5, 3, 0, 0)
   infoButton.text = "i"
   infoButton.SetPressed(TogglePanel)
+    // Info button text
+  infoBtnText = AddUI(text, top_left, top_left, 5, 5, infoButton.x, infoButton.y)
+  infoBtnText.text = fancyX
+  infoBtnText.color = "#ff0000"
+  infoBtnText.visible = false
     // Info panel
   infoPanel = AddUI(panel, center_center, center_center, screen.w - 22, screen.h - 4, 0, 0)
   infoPanel.visible = false
@@ -275,26 +402,36 @@ asciiend
   infoText = AddUI(text, center_center, center_center, infoPanel.w - 6, infoPanel.h - 4, 0, 0)
   infoPanel.Add(infoText)
   infoText.align = center
-  infoText.text = "[color=#00ffff]Welcome To Battleship![/color]\nBy Davit\n\n[color=#ffff00]How to Play[/color]\nYou have 10 ships in total — 4x 1-tile, 3x 2-tile, 2x 3-tile, and 1x 4-tile ship. Place them on your board to start the game. Ships cannot touch horizontally, vertically or diagonally. The game is turn-based. Hitting an enemy ship grants you an extra move. Sink all enemy ships to win!\n\n[color=#ffff00]Marker Mode[/color]\nPress Ctrl or the [[color=#17ac5a]▼[/color]] button to add markers to tiles. When in marker mode, your board will have a green border.\n\n[color=#ffff00]Score[/color]\nThe highest possible score is 100 points.\n[color=#00ff00]Smooth seas to ye![/color]"
-
-// Set exitButton function
-?playButton.visible = false
-  exitButton.SetPressed(ExitToMenu)
-:
-  exitButton.SetPressed(loc.Leave)
+  infoText.text = "[color=#3ba2d5]Welcome To Battleship![/color]\n" +
+    ^"By Davit\n" + 
+    ^"\n" +
+    ^"[color=#c89e29]How to Play[/color]\n" + 
+    ^"You have 10 ships in total — 4x 1-tile, 3x 2-tile, 2x 3-tile, and 1x 4-tile ships. Place them on your board to start the game. Press Shift or [◀ ▶] to change ship orientation. Ships cannot touch horizontally, vertically or diagonally. The game is turn-based. Hitting an enemy ship grants you an extra move. Sink all enemy ships to win!\n" + 
+    // ^"\n" + 
+    ^"[color=#c89e29]Marker Mode[/color]\n" + 
+    ^"Press Ctrl or the [[color=#17ac5a]▼[/color]] button to add markers to tiles. When in marker mode, your board will have a green border.\n" + 
+    // ^"\n" + 
+    ^"[color=#c89e29]Score[/color]\n" + 
+    ^"The highest possible score is 100 points.\n" + 
+    ^"\n" +
+    ^"[color=#3ba2d5]Smooth seas to ye![/color]"
 
 // Marker mode
 ?key = "ability2Begin"
   ToggleMarkerMode()
 ?markerMode = true
-  playerGridPanel.color = "#17ac5a"
-  enemyGridPanel.color = "#17ac5a"
+  playerGridPanel.color = "#429367" //"#17ac5a"
+  enemyGridPanel.color = "#429367" //"#17ac5a"
+  pCoords = "#429367"
+  eCoords = "#429367"
   markerButton.style = 0
   markerButton.text = "x"
   markerBtnText.visible = true
 :
-  playerGridPanel.color = "#00aaff"
-  enemyGridPanel.color = "#00aaff"
+  playerGridPanel.color = "#4c7589" //"#00aaff"
+  enemyGridPanel.color = "#4c7589" //"#00aaff"
+  pCoords = "#4c7589"
+  eCoords = "#4c7589"
   markerButton.style = 1
   markerButton.text = "▼"
   markerBtnText.visible = false
@@ -304,7 +441,7 @@ asciiend
   RotateShip()
 
 // Enemy turn
-?playerTurn = false
+?!playerTurn
   // Reset eHitTile and possibleHitList
   eHitTile = -1
   possibleHitList.Clear()
@@ -313,10 +450,26 @@ asciiend
   ?eHitList.Count() = 0 | gamemode = 1
     eHitY = RandIntInRange(0, 9)
     eHitX = RandIntInRange(0, 9)
+    var rerolleHitTiles = false
     for i = 0..99
-      ?![0, 1, 2, 6].Contains(pTiles[eHitY][eHitX])
+      ?gamemode = 3
+        var sx = [-1, 0, 1]
+        var sy = [-1, 0, 1]
+        for sxi : sx
+          for syi : sy
+            ?eHitY + syi < 0 | eHitX + sxi < 0 | eHitY + syi > 9 | eHitX + sxi > 9
+              continue
+            ?!(sxi = 0 & syi = 0)
+              ?pTiles[eHitY + syi][eHitX + sxi] = 5
+              ^| (pTiles[eHitY + syi][eHitX + sxi] = 4 & math.Abs(syi) = math.Abs(sxi))
+                rerolleHitTiles = true
+                break
+          ?rerolleHitTiles = true
+            break
+      ?![0, 1, 2, 6].Contains(pTiles[eHitY][eHitX]) | rerolleHitTiles
         eHitY = RandIntInRange(0, 9)
         eHitX = RandIntInRange(0, 9)
+        rerolleHitTiles = false
       :
         break
     eHitTile = pTiles[eHitY][eHitX]
@@ -349,10 +502,41 @@ asciiend
         firstY = eHitList[0][0]
         lastY = firstY
 
+      // Optimize up or down / left or right choice
+      var rerolleHitTiles1 = false
+      var sx = [-1, 0, 1]
+      var sy = [-1, 0, 1]
+      for i = 1..2
+        var tryY
+        var tryX
+        ?firstX = lastX
+          tryY = firstY - 1
+          tryX = firstX
+        :
+          tryY = firstY
+          tryX = firstX - 1
+        for sxi : sx
+          for syi : sy
+            ?tryY + syi < 0 | tryX + sxi < 0 | tryY + syi > 9 | tryX + sxi > 9
+              continue
+            ?!(sxi = 0 & syi = 0)
+              ?pTiles[tryY + syi][tryX + sxi] = 5
+              ^| (pTiles[tryY + syi][tryX + sxi] = 4 & math.Abs(syi) = math.Abs(sxi))
+                rerolleHitTiles1 = true
+                break
+          ?rerolleHitTiles1
+            break
+        
       // Vertical ship
       ?firstX = lastX
         // Up (if not, down)
-        ?firstY - 1 >= 0
+        ?firstY - 1 >= 0 & [0, 1, 2, 6].Contains(pTiles[firstY - 1][firstX]) & !rerolleHitTiles1
+          possibleHitList.Add([firstY - 1, firstX])
+        :
+          possibleHitList.Add([lastY + 1, firstX])
+          rerolleHitTiles1 = false
+        /* (old)
+        ?firstY - 1 >= 0 & rerollehit
           ?([0,1,2,6].Contains(pTiles[firstY - 1][firstX]))
             possibleHitList.Add([firstY - 1, firstX])
         :
@@ -364,10 +548,16 @@ asciiend
             possibleHitList.Add([lastY + 1, firstX])
         :
           ?([0,1,2,6].Contains(pTiles[firstY - 1][firstX]))
-            possibleHitList.Add([firstY - 1, firstX])
+            possibleHitList.Add([firstY - 1, firstX]) */
       // Horizontal ship
       :?firstY = lastY
         // Left (if not, right)
+        ?firstX - 1 >= 0 & [0, 1, 2, 6].Contains(pTiles[firstY][firstX - 1]) & !rerolleHitTiles1
+          possibleHitList.Add([firstY, firstX - 1])
+        :
+          possibleHitList.Add([firstY, lastX + 1])
+          rerolleHitTiles1 = false
+        /* (old)
         ?firstX - 1 >= 0
           ?([0,1,2,6].Contains(pTiles[firstY][firstX - 1]))
             possibleHitList.Add([firstY, firstX - 1])
@@ -380,7 +570,7 @@ asciiend
             possibleHitList.Add([firstY, lastX + 1])
         :
           ?([0,1,2,6].Contains(pTiles[firstY][firstX - 1]))
-            possibleHitList.Add([firstY, firstX - 1])
+            possibleHitList.Add([firstY, firstX - 1]) */
       
       // If there is at least one extension option
       ?possibleHitList.Count() > 0
@@ -437,52 +627,24 @@ asciiend
     playerTurn = true
     turnCount ++
 
-// Update text on tile buttons
-?allowUpdates = true
-  for y = 0..9
-    for x = 0..9
-      ?pTiles[y][x] = 0 & enemyGridPanel.visible
-        pButtons[y][x].text = "1"
-      :
-        pButtons[y][x].text = pTiles[y][x] + ""
-      ?eTiles[y][x] = 0 | eTiles[y][x] = 2
-        eButtons[y][x].text = "1"
-      :
-        eButtons[y][x].text = eTiles[y][x] + ""
-      // Player tile color
-      ?!enemyGridPanel.visible & pTiles[y][x] = 0
-        pButtons[y][x].tcolor = "#555577"
-      :?pTiles[y][x] = 1 | pTiles[y][x] = 0
-        pButtons[y][x].tcolor = "#00aaff"
-      :?pTiles[y][x] = 2
-        pButtons[y][x].tcolor = "#ffcc44"
-      :?pTiles[y][x] = 3
-        pButtons[y][x].tcolor = "#0000e0"
-      :?pTiles[y][x] = 4
-        pButtons[y][x].tcolor = "#ff0101"
-      :?pTiles[y][x] = 5
-        pButtons[y][x].tcolor = "#423328"
-      :?pTiles[y][x] = 6
-        pButtons[y][x].tcolor = "#17ac5a"
-      :?pTiles[y][x] = 12
-        pButtons[y][x].tcolor = "#ff00ff"
-      :?pTiles[y][x] >= 10
-        pButtons[y][x].tcolor = "#690069"
-      // Enemy tile color
-      ?eTiles[y][x] = 0
-        eButtons[y][x].tcolor = "#00aaff" //"#555577"
-      :?eTiles[y][x] = 1
-        eButtons[y][x].tcolor = "#00aaff"
-      :?eTiles[y][x] = 2
-        eButtons[y][x].tcolor = "#00aaff" //"#ffcc44"
-      :?eTiles[y][x] = 3
-        eButtons[y][x].tcolor = "#0000e0"
-      :?eTiles[y][x] = 4
-        eButtons[y][x].tcolor = "#ff0101"
-      :?eTiles[y][x] = 5
-        eButtons[y][x].tcolor = "#534032"
-      :?eTiles[y][x] = 6
-        eButtons[y][x].tcolor = "#17ac5a"
+// Ship counter
+var pSunk = [pSinkScore, 10]
+var eSunk = [eSinkScore, 10]
+?pSunk[0] ! pSinkScore
+  pSunk[0] = pSinkScore
+  pSunk[1] -= 1
+?eSunk[0] ! eSinkScore
+  eSunk[0] = eSinkScore
+  eSunk[1] -= 1
+?!enemyGridPanel.visible
+  pSunk = [pSinkScore, 10]
+  eSunk = [eSinkScore, 10]
+var spaceFiller = ""
+?eSunk[1] < 10
+  spaceFiller = " "
+:
+  spaceFiller = ""
+shipCounter.text = "[color=#3ba2d5]" + spaceFiller + eSunk[1] + "[/color]" + "[color=#999999] || [/color]" + "[color=#ffa800]" + pSunk[1] + "[/color]"
 
 // Throw an error when a ship is not selected while placing them (player)
 var selectionErrorMessage = "Please select a ship."
@@ -512,23 +674,155 @@ score = math.Max(0, ((pHitScore + pSinkScore) * 70 / 40) - ((eHitScore + eSinkSc
 
 // Victory check
 ?pHitScore = 20
+  for y = 0..9
+    for x = 0..9
+      pButtons[y][x].visible = false
+      eButtons[y][x].visible = false
   victoryPanel.visible = true
   victoryPanel.color = "#17ac5a"
-  replayButton.bcolor = victoryPanel.color
-  replayButton.tcolor = victoryPanel.color
-  menuButton.bcolor = victoryPanel.color
-  menuButton.tcolor = victoryPanel.color
+  replayButton.bcolor = "#ffff00"
+  replayButton.tcolor = "#ffff00"
+  menuButton.bcolor = "#2fabea"
+  menuButton.tcolor = "#2fabea"
   victoryText.color = victoryPanel.color
   victoryText.text = "You Won!\nScore:  " + score
 :?eHitScore > 0 & eHitScore = placedShipCoordsFlattened.Count()
+  for y = 0..9
+    for x = 0..9
+      pButtons[y][x].visible = false
+      eButtons[y][x].visible = false
   victoryPanel.visible = true
   victoryPanel.color = "#ff0000"
-  replayButton.bcolor = victoryPanel.color
-  replayButton.tcolor = victoryPanel.color
-  menuButton.bcolor = victoryPanel.color
-  menuButton.tcolor = victoryPanel.color
+  replayButton.bcolor = "#ffff00"
+  replayButton.tcolor = "#ffff00"
+  menuButton.bcolor = "#2fabea"
+  menuButton.tcolor = "#2fabea"
   victoryText.color = victoryPanel.color
   victoryText.text = "You Lost!\nScore: " + score
+
+
+// In a pop-up, "<-" & "->" (or "A" & "D") change selected button, "C" confirms, "X" cancels
+  // Cooldown for the "X" key, preventing double commands
+var exitShortcutCooldown = 0
+var default_cd_5f = 5
+?exitShortcutCooldown > 0
+  exitShortcutCooldown --
+
+  // Victory panel pop-up
+?victoryPanel.visible
+  ?key = "backEnd"  // "X"
+    exitShortcutCooldown = default_cd_5f
+    ExitToMenu(menuButton)
+  :?key = "leftEnd"  // "<-" / "A"
+    ?menuButton.style = 2
+      menuButton.style = 3
+      replayButton.style = 2
+    :
+      menuButton.style = 2
+      replayButton.style = 3
+  :?key = "rightEnd"  // "->" / "D"
+    ?replayButton.style = 2
+      replayButton.style = 3
+      menuButton.style = 2
+    :
+      replayButton.style = 2
+      menuButton.style = 3
+  :?key = "bumpREnd"  // "C"
+    ?menuButton.style = 3
+      ExitToMenu(menuButton)
+    :
+      Start()
+:
+  replayButton.style = 2
+  menuButton.style = 2
+
+  // ConfirmAction panel pop-up
+?confirmActionPanel.visible
+  ?key = "backEnd"  // "X"
+    exitShortcutCooldown = default_cd_5f
+    CancelAction(cancelActionButton)
+  :?key = "leftEnd"  // "<-" / "A"
+    ?cancelActionButton.style = 2
+      cancelActionButton.style = 3
+      confirmActionButton.style = 2
+    :
+      cancelActionButton.style = 2
+      confirmActionButton.style = 3
+  :?key = "rightEnd"  // "->" / "D"
+    ?confirmActionButton.style = 2
+      confirmActionButton.style = 3
+      cancelActionButton.style = 2
+    :
+      confirmActionButton.style = 2
+      cancelActionButton.style = 3
+  :?key = "bumpREnd"  // "C"
+    ?cancelActionButton.style = 3
+      CancelAction(cancelActionButton)
+    :
+      ExitToMenu(confirmActionButton)
+:
+  confirmActionButton.style = 2
+  cancelActionButton.style = 2
+
+  // Info panel pop-up
+?infoPanel.visible
+  ?key = "backEnd"  // "X"
+    exitShortcutCooldown = default_cd_5f
+    infoPanel.visible = false
+
+  // Exit button
+?!infoPanel.visible & !victoryPanel.visible & !confirmActionPanel.visible & key = "backEnd" & exitShortcutCooldown = 0
+  ?playerGridPanel.visible
+    ExitToMenu(exitButton)
+  :
+    loc.Leave()
+
+  // Cycle through ships
+?confirmShips.visible & pButtons[0][0].visible
+  ?key = "leftEnd"  // "<-" / "A"
+    selectedShipSize ++
+    for i = 1..4
+      ?selectedShipSize > 4
+        selectedShipSize = 1
+      ?placedShips[selectedShipSize - 1] = 5 - selectedShipSize
+        selectedShipSize ++
+      :
+        break
+  :?key = "rightEnd"  // "->" / "D"
+    selectedShipSize --
+    for i = 1..4
+      ?selectedShipSize < 1
+        selectedShipSize = 4
+      ?placedShips[selectedShipSize - 1] = 5 - selectedShipSize
+        selectedShipSize --
+      :
+        break
+
+
+// Info window
+?!bgPanel.visible
+  ?infoPanel.visible
+    playButton.visible = false
+    easyModeButton.visible = false
+    mediumModeButton.visible = false
+    hardModeButton.visible = false
+    infoButton.style = 0
+    infoButton.text = "x"
+    infoBtnText.visible = true
+  :
+    playButton.visible = true
+    easyModeButton.visible = true
+    mediumModeButton.visible = true
+    hardModeButton.visible = true
+    infoButton.style = 1
+    infoButton.text = "i"
+    infoBtnText.visible = false
+
+// Set exitButton function
+?!playButton.visible & !infoPanel.visible
+  exitButton.SetPressed(ExitToMenu)
+:
+  exitButton.SetPressed(loc.Leave)
 
 // Toggle playButtonText
 playButtonText.visible = playButton.visible
@@ -586,17 +880,32 @@ func Start ()
   // Fill in the boards, reset arrays
   BoardReset(pTiles)
   BoardReset(eTiles)
+  for y = 0..9
+    for x = 0..9
+      pButtons[y][x].visible = "inherit"
   placedShipCoords.Clear()
   placedShipCoordsFlattened.Clear()
+  placedEnemyShipCoords.Clear()
+  eHitList.Clear()
   
   // Generate boards
   GenerateMap()
 
-  // Enable array updates
+  // Allow array updates
   allowUpdates = true
 
 // Exit to Main Menu
-func ExitToMenu ()
+func ExitToMenu (btn)
+  // If exiting mid-game, confirm action
+  ?btn = exitButton
+    confirmActionPanel.visible = true
+    for y = 0..9
+      for x = 0..9
+        pButtons[y][x].visible = false
+        ?enemyGridPanel.visible
+          eButtons[y][x].visible = false
+    return
+
   // Reset score
   pHitScore = 0
   eHitScore = 0
@@ -610,12 +919,17 @@ func ExitToMenu ()
   mediumModeButton.visible = true
   hardModeButton.visible = true
   victoryPanel.visible = false
+  confirmActionPanel.visible = false
   confirmShips.visible = false
   confirmShipsText.visible = false
   ship4.visible = false
   ship3.visible = false
   ship2.visible = false
   ship1.visible = false
+  ship4text.visible = false
+  ship3text.visible = false
+  ship2text.visible = false
+  ship1text.visible = false
   rotateButton.visible = false
   ?!placeHorizontal
     RotateShip()
@@ -633,6 +947,19 @@ func ExitToMenu ()
   // Enable array updates
   allowUpdates = false
 
+// Cancel an action from a pop-up
+func CancelAction (btn)
+  // Hide the pop-up
+  btn.parent.visible = false
+  
+  // Enable player and enemy buttons
+  ?playerGridPanel.visible & !pButtons[0][0].visible
+    for y = 0..9
+      for x = 0..9
+        pButtons[y][x].visible = inherit
+        ?enemyGridPanel.visible
+          eButtons[y][x].visible = inherit
+
 // Generate boards
 func GenerateMap ()
   // Show/hide boards
@@ -647,6 +974,10 @@ func GenerateMap ()
   ship3.visible = true
   ship2.visible = true
   ship1.visible = true
+  ship4text.visible = true
+  ship3text.visible = true
+  ship2text.visible = true
+  ship1text.visible = true
   rotateButton.visible = true
   
   // Generate ships (enemy)
@@ -688,6 +1019,8 @@ func GenerateShips (shipSize)
   for yx = 1..50
     ?shipSize = 1
       ghostTiles[firstTileY][firstTileX] = 2
+      ghostShipYX.Add([firstTileY, firstTileX])
+      placedEnemyShipCoords.Add([[firstTileY, firstTileX]])
       break
     for t = 0..shipSize-1
       ?tileListY[t] > 9 | tileListX[t] > 9 | ghostTiles[tileListY[t]][tileListX[t]] ! 1
@@ -712,10 +1045,13 @@ func GenerateShips (shipSize)
         break
       ghostShipYX.Add([tileListY[t], tileListX[t]])
     ?ghostShipYX.Count() = shipSize
+      placedEnemyShipCoords.Add([])
       for i = 0..ghostShipYX.Count()-1
         ghostTiles[ghostShipYX[i][0]][ghostShipYX[i][1]] = 2
+        // Copy placed enemy ship coordinates
+        placedEnemyShipCoords[placedEnemyShipCoords.Count()-1].Add(ghostShipYX[i])
       break
-  
+
   // Restrict adjacent tiles
   for y = 0..9
     for x = 0..9
@@ -763,47 +1099,88 @@ asciiend
     rotateButton.w = 5
     rotateButton.h = 4
 
-
-
-// Identify ship tiles ////////////////////////////////////////////////// experim. func
-
 // Track the type of placed ships, disable buttons if all ships of that size are placed
 var placedShips = [0, 0, 0, 0]  // 1, 2, 3, 4 tiles in order
 ?placedShips[0] = 4
   ship1.SetPressed(Nothing)
   ship1.tcolor = "#555577"
+  ship1.bcolor = ship1.tcolor
+  ship1text.color = ship1.tcolor
   ?selectedShipSize = 1
     selectedShipSize = 0
 :
   ship1.SetPressed(SelectShip)
   ship1.tcolor = "#ffffff"
+  ship1.bcolor = ship1.tcolor
+  ship1text.color = ship1.tcolor
 ?placedShips[1] = 3
   ship2.SetPressed(Nothing)
   ship2.tcolor = "#555577"
+  ship2.bcolor = ship2.tcolor
+  ship2text.color = ship2.tcolor
   ?selectedShipSize = 2
     selectedShipSize = 0
 :
   ship2.SetPressed(SelectShip)
   ship2.tcolor = "#ffffff"
+  ship2.bcolor = ship2.tcolor
+  ship2text.color = ship2.tcolor
 ?placedShips[2] = 2
   ship3.SetPressed(Nothing)
   ship3.tcolor = "#555577"
+  ship3.bcolor = ship3.tcolor
+  ship3text.color = ship3.tcolor
   ?selectedShipSize = 3
     selectedShipSize = 0
 :
   ship3.SetPressed(SelectShip)
   ship3.tcolor = "#ffffff"
+  ship3.bcolor = ship3.tcolor
+  ship3text.color = ship3.tcolor
 ?placedShips[3] = 1
   ship4.SetPressed(Nothing)
   ship4.tcolor = "#555577"
+  ship4.bcolor = ship4.tcolor
+  ship4text.color = ship4.tcolor
   ?selectedShipSize = 4
     selectedShipSize = 0
 :
   ship4.SetPressed(SelectShip)
   ship4.tcolor = "#ffffff"
+  ship4.bcolor = ship4.tcolor
+  ship4text.color = ship4.tcolor
+
+?selectedShipSize = 1
+  ship1.style = 3
+  ship2.style = 1
+  ship3.style = 1
+  ship4.style = 1
+:?selectedShipSize = 2
+  ship1.style = 1
+  ship2.style = 3
+  ship3.style = 1
+  ship4.style = 1
+:?selectedShipSize = 3
+  ship1.style = 1
+  ship2.style = 1
+  ship3.style = 3
+  ship4.style = 1
+:?selectedShipSize = 4
+  ship1.style = 1
+  ship2.style = 1
+  ship3.style = 1
+  ship4.style = 3
+:
+  ship1.style = 1
+  ship2.style = 1
+  ship3.style = 1
+  ship4.style = 1
 
 // Preview and place ships (player)
 func AddShips (tile)
+  // Allow updates
+  allowUpdates = true
+
   // Add a preview board of pTiles
   var previewTiles = BoardCopy(pTiles)
 
@@ -845,23 +1222,40 @@ func AddShips (tile)
     var tile4X = firstTileX + (3 * dX)
     var tileListY = [firstTileY, tile2Y, tile3Y, tile4Y]
     var tileListX = [firstTileX, tile2X, tile3X, tile4X]
+    var originalFirstTileY = firstTileY
+    var originalFirstTileX = firstTileX
     for yx = 1..50
       ?selectedShipSize = 1
         previewTiles[firstTileY][firstTileX] = 12
         previewedShipCoords.Add([firstTileY, firstTileX])
         break
       for t = 0..selectedShipSize-1
-        ?tileListY[t] > 9 | tileListX[t] > 9 | previewTiles[tileListY[t]][tileListX[t]] ! 1
+        var tileIDs = []
+        var badIDY
+        var badIDX
+        badIDY = false
+        badIDX = false
+        for i = 0..selectedShipSize-1
+          ?tileListY[i] >= 0 & tileListY[i] <= 9 & tileListX[i] >= 0 & tileListX[i] <= 9
+            tileIDs.Add(previewTiles[tileListY[i]][tileListX[i]])
+          :
+            break
+          ?![1, 12].Contains(tileIDs[i])
+            ?tileListY[0] = tileListY[1]
+              badIDX = true
+            :
+              badIDY = true
+        tileIDs.Clear()
+        ?tileListY[selectedShipSize-1] > 9 | tileListX[selectedShipSize-1] > 9 | badIDY | badIDX
           previewShipYX.Clear()
-          //////// THIS PART TELEPORTS SHIPS RANDOMLY WHEN CAN'T BE PLACED????? /////////
-          ?tileListY[t] > 9 | tileListY[t] ! 1
+          ?(tileListY[selectedShipSize-1] > 9 | badIDY) & tileListY[selectedShipSize-1] >= originalFirstTileY & firstTileY > 0
             firstTileY --
-          :?tileListX[t] > 9 | tileListX[t] ! 1
+          :?(tileListX[selectedShipSize-1] > 9 | badIDX) & tileListX[selectedShipSize-1] >= originalFirstTileX & firstTileX > 0
             firstTileX --
-          //////////////////////////////////////////////////////////
-          // :
-          //   Flash(tile.tcolor, "#ff0000", 30)
-          //   break
+          :
+            tile.tcolor = "#ff0000"
+            allowUpdates = true
+            break
           tile2Y = firstTileY + (1 * dY)
           tile2X = firstTileX + (1 * dX)
           tile3Y = firstTileY + (2 * dY)
@@ -870,16 +1264,21 @@ func AddShips (tile)
           tile4X = firstTileX + (3 * dX)
           tileListY = [firstTileY, tile2Y, tile3Y, tile4Y]
           tileListX = [firstTileX, tile2X, tile3X, tile4X]
+        :
+          for p = 0..selectedShipSize-1
+            previewShipYX.Add([tileListY[p], tileListX[p]])
           break
-        previewShipYX.Add([tileListY[t], tileListX[t]])
-      ?previewShipYX.Count() = selectedShipSize
+      ?previewShipYX ! [] & previewShipYX.Count() = selectedShipSize
         for i = 0..previewShipYX.Count()-1
           previewTiles[previewShipYX[i][0]][previewShipYX[i][1]] = 12
           previewedShipCoords.Add([previewShipYX[i][0], previewShipYX[i][1]])
         break
+    printPreviewInstructions = true
 
   // Confirm previewed ship
   :?previewTiles[y][x] = 12
+    printPreviewInstructions = false
+    
     placedShipCoords.Add([])
     for coords : previewedShipCoords
       previewTiles[coords[0]][coords[1]] = 2
@@ -904,8 +1303,9 @@ func AddShips (tile)
         break
   
   // Wrong placement animation
-  // :
-  //   Flash(pButtons[y][x].tcolor, "#ff0000", 30)
+  :
+    pButtonText[y][x].color = "#ff0000"
+    allowUpdates = true
 
   // Update restricted tiles
   for y = 0..9
@@ -938,10 +1338,8 @@ func AddShips (tile)
     for x = 0..9
       pTiles[y][x] = previewTiles[y][x]
 
-
-
 // Add ships manually (player)
-func AddShip_s (tile)
+/* func AddShip_s (tile)
   // Add ship tiles one by one
   var y = (tile.y - 1) / (playerGridPanel.h / 10)
   var x = (tile.x - 1) / (playerGridPanel.w / 10)
@@ -951,30 +1349,31 @@ func AddShip_s (tile)
         placedShipCoords.RemoveAt(placedShipCoords.IndexOf(i))
         break
     pTiles[y][x] = 1
-    pButtons[y][x].text = "1"
-    pButtons[y][x].tcolor = "#00aaff"
+    pButtonText[y][x].text = "1"
+    pButtonText[y][x].color = "#00aaff"
   :?placedShipCoords.Count() < shipTileCount & pTiles[y][x] = 1
     placedShipCoords.Add([y, x])
     pTiles[y][x] = 2
-    pButtons[y][x].text = "2"
-    pButtons[y][x].tcolor = "#ffff77"
+    pButtonText[y][x].text = "2"
+    pButtonText[y][x].color = "#ffff77" */
 
 // Add markers and hit ships
 func AddMarker (tile)
+  // Allow updates
+  allowUpdates = true
+
   // Separate P and E variables
   var GridPanel
   var Tiles
-  var Buttons
+  var ButtonText
   var Markers
   ?tile.parent = playerGridPanel
     GridPanel = playerGridPanel
     Tiles = pTiles
-    Buttons = pButtons
     Markers = playerMarkers
   :?tile.parent = enemyGridPanel
     GridPanel = enemyGridPanel
     Tiles = eTiles
-    Buttons = eButtons
     Markers = enemyMarkers
   
   // Add ship tiles one by one
@@ -982,10 +1381,8 @@ func AddMarker (tile)
   var x = (tile.x - 1) / (GridPanel.w / 10)
   ?markerMode = true
     ?Tiles[y][x] = 0 | Tiles[y][x] = 1 | (Tiles = eTiles & Tiles[y][x] = 2)
-      Markers.Add([y, x, Tiles[y][x]])
+      Markers.Add([y, x, Tiles[y][x]])  
       Tiles[y][x] = 6
-      Buttons[y][x].text = "6"
-      Buttons[y][x].tcolor = "#17ac5a"
     :?Tiles[y][x] = 6
       for i : Markers
         ?i[0] = y & i[1] = x
@@ -995,13 +1392,11 @@ func AddMarker (tile)
   :?Tiles = eTiles & playerTurn = true
     ?Tiles[y][x] = 2
       Tiles[y][x] = 4
-      Buttons[y][x].text = "4"
       KillShip(Tiles, y, x)
       pHitScore ++
       // (Continue turn if shot hits)
     :?Tiles[y][x] = 0 | Tiles[y][x] = 1
       Tiles[y][x] = 3
-      Buttons[y][x].text = "3"
       playerTurn = false
 
 // Kill ships
@@ -1087,8 +1482,17 @@ func ResetErrorTimer ()
 func PrintSelectionError ()
   selectionErrTimer = 0
 
+// Prints "Press on the previewed ship to confirm its placement."
+var printPreviewInstructions = false
+var previewInstructionMessage = "Press on the previewed ship to confirm its placement."
+?printPreviewInstructions = true
+  >`@screen.w / 2 - string.Size(previewInstructionMessage) / 2@,2,#c523c5,@previewInstructionMessage@
+
 // Start gameplay
 func StartGameplay ()
+  // Allow updates
+  allowUpdates = true
+  
   // Reveal enemy board
   enemyGridPanel.visible = true
   markerButton.visible = true
@@ -1098,14 +1502,20 @@ func StartGameplay ()
   ship3.visible = false
   ship2.visible = false
   ship1.visible = false
+  ship4text.visible = false
+  ship3text.visible = false
+  ship2text.visible = false
+  ship1text.visible = false
   rotateButton.visible = false
 
   // Reset selectedShipSize
   selectedShipSize = 4
   
-  // Enable markers on player board
+  // Show buttons on enemy board,
+  // enable markers on player board
   for y = 0..9
     for x = 0..9
+      eButtons[y][x].visible = "inherit"
       pButtons[y][x].SetPressed(AddMarker)
 
 // Generate a random number in a given range
@@ -1118,17 +1528,6 @@ func ToggleMarkerMode ()
   ?enemyGridPanel.visible
     markerMode = !markerMode
 
-// Red flash animation ///////// DOESNT'T WORK ///////// (temporary var storage problems I think)
-/* func Flash (component, clr, maxDuration)
-  var duration = 0
-  var prevClr = component
-  var gap = math.FloorToInt(duration / 4)
-  ?duration % (gap * 2) < gap & duration < maxDuration
-    component = clr
-  :
-    component = prevClr
-  duration ++ */
-
 // Add a new ui element
 func AddUI (Type, Anchor, Dock, wd, hi, xPos, yPos)
   var comp
@@ -1140,8 +1539,6 @@ func AddUI (Type, Anchor, Dock, wd, hi, xPos, yPos)
     comp = ui.AddPanel()
   :?Type = "anim"
     comp = ui.AddAnim()
-  :?Type = "style"
-    comp = ui.AddStyle()
   comp.anchor = Anchor
   comp.dock = Dock
   comp.w = wd
@@ -1160,5 +1557,190 @@ func TogglePanel (btn)
 // Does nothing. For buttons
 func Nothing ()
   return
+
+  
+// Textures
+var waterTexture = "#. #\n# °#"
+var flagTexture = "#│▶#\n-¯-#"
+// flagTexture = "#│>#\n#¯-#"
+// flagTexture = "#│>#\n-¯-#"
+// flagTexture = "#│>#\n⌐¯¬#"
+// flagTexture = "#│>#\n┌┴┐#"
+// flagTexture = "#│▶#\n┌┴┐#"
+// flagTexture = "#│▶#\n─┴─#"
+// flagTexture = "#│>#\n´¯`#"
+var hitTileTexture = "#x #\n# x#"
+var hitShipHiddenTexture = "#\\/#\n#/\#"
+var flashDuration = 10
+var flashTimer = flashDuration + 2
+
+// Update text on tile buttons
+?allowUpdates
+  for y = 0..9
+    for x = 0..9
+      // ?pTiles[y][x] = 0 & enemyGridPanel.visible
+      //   pButtonText[y][x].text = "1"
+      // :
+      //   pButtonText[y][x].text = pTiles[y][x] + ""
+      // ?eTiles[y][x] = 0 | eTiles[y][x] = 2
+      //   eButtonText[y][x].text = "1"
+      // :
+      //   eButtonText[y][x].text = eTiles[y][x] + ""
+      
+      // Player tile color
+      ?pButtonText[y][x].color = "#ff0000" & flashTimer > flashDuration + 1
+        flashTimer = 0
+      ?pButtonText[y][x].color = "#ff0000" & flashTimer <= flashDuration
+        pButtonText[y][x].color = "#ff0000"
+      :?!enemyGridPanel.visible & pTiles[y][x] = 0
+        pButtonText[y][x].color = "#555577"
+      :?pTiles[y][x] = 0 | pTiles[y][x] = 1
+        pButtonText[y][x].color = "#3ba2d5" //"#00aaff"
+      :?pTiles[y][x] = 2
+        pButtonText[y][x].color = "#c89e29" //"#ffcc44"
+      :?pTiles[y][x] = 3
+        pButtonText[y][x].color = "#01354f" //"#0000e0"
+      :?pTiles[y][x] = 4
+        pButtonText[y][x].color = "#ca2b2b" //"#ff0101"
+      :?pTiles[y][x] = 5
+        pButtonText[y][x].color = "#4c392b"
+      :?pTiles[y][x] = 6
+        pButtonText[y][x].color = "#17ac5a"
+      :?pTiles[y][x] = 12
+        pButtonText[y][x].color = "#c523c5" //"#ff00ff"
+      :?pTiles[y][x] >= 10
+        pButtonText[y][x].color = "#690069"
+      // Enemy tile color
+      ?eButtonText[y][x].color = "#ff0000" & flashTimer > flashDuration + 1
+        flashTimer = 0
+      ?eButtonText[y][x].color = "#ff0000" & flashTimer <= flashDuration
+        eButtonText[y][x].color = "#ff0000"
+      :?eTiles[y][x] = 0
+        eButtonText[y][x].color = "#3ba2d5" //"#00aaff" //"#555577"
+      :?eTiles[y][x] = 1
+        eButtonText[y][x].color = "#3ba2d5" //"#00aaff"
+      :?eTiles[y][x] = 2
+        eButtonText[y][x].color = "#3ba2d5" //"#00aaff" //"#ffcc44"
+      :?eTiles[y][x] = 3
+        eButtonText[y][x].color = "#01354f" //"#0000e0"
+      :?eTiles[y][x] = 4
+        eButtonText[y][x].color = "#ca2b2b" //"#ff0101"
+      :?eTiles[y][x] = 5
+        eButtonText[y][x].color = "#4c392b"
+      :?eTiles[y][x] = 6
+        eButtonText[y][x].color = "#17ac5a"
+
+      // Change tile ID to ASCII
+        // Player
+      ?pTiles[y][x] = 0 | pTiles[y][x] = 1
+        pButtonText[y][x].text = waterTexture
+      :?pTiles[y][x] = 2 | pTiles[y][x] = 4 | pTiles[y][x] = 5
+        for L1 : placedShipCoords
+          ?L1.Count() = 1 & L1[0][0] = y & L1[0][1] = x
+            pButtonText[y][x].text = ship1text.text
+          :?L1.Count() > 1
+            for i = 0..L1.Count()-1
+              ?L1[0][0] = L1[1][0] & L1[0][0] = y
+                ?L1[i][1] = x
+                  ?L1.Count() = 2
+                    pButtonText[y][x].text = ship2horizontal[i]
+                  :?L1.Count() = 3
+                    pButtonText[y][x].text = ship3horizontal[i]
+                  :?L1.Count() = 4
+                    pButtonText[y][x].text = ship4horizontal[i]
+              :?L1[0][1] = L1[1][1] & L1[0][1] = x
+                ?L1[i][0] = y
+                  ?L1.Count() = 2
+                    pButtonText[y][x].text = ship2vertical[i]
+                  :?L1.Count() = 3
+                    pButtonText[y][x].text = ship3vertical[i]
+                  :?L1.Count() = 4
+                    pButtonText[y][x].text = ship4vertical[i]
+      :?pTiles[y][x] = 12
+        ?previewedShipCoords.Count() = 1 & previewedShipCoords[0][0] = y & previewedShipCoords[0][1] = x
+          pButtonText[y][x].text = ship1text.text
+        :?previewedShipCoords.Count() > 1
+          for i = 0..previewedShipCoords.Count()-1
+            ?previewedShipCoords[0][0] = previewedShipCoords[1][0] & previewedShipCoords[0][0] = y
+              ?previewedShipCoords[i][1] = x
+                ?previewedShipCoords.Count() = 2
+                  pButtonText[y][x].text = ship2horizontal[i]
+                :?previewedShipCoords.Count() = 3
+                  pButtonText[y][x].text = ship3horizontal[i]
+                :?previewedShipCoords.Count() = 4
+                  pButtonText[y][x].text = ship4horizontal[i]
+            :?previewedShipCoords[0][1] = previewedShipCoords[1][1] & previewedShipCoords[0][1] = x
+              ?previewedShipCoords[i][0] = y
+                ?previewedShipCoords.Count() = 2
+                  pButtonText[y][x].text = ship2vertical[i]
+                :?previewedShipCoords.Count() = 3
+                  pButtonText[y][x].text = ship3vertical[i]
+                :?previewedShipCoords.Count() = 4
+                  pButtonText[y][x].text = ship4vertical[i]
+      :?pTiles[y][x] = 3
+        pButtonText[y][x].text = hitTileTexture
+      :?pTiles[y][x] = 6
+        pButtonText[y][x].text = flagTexture
+        
+        // Enemy
+      ?enemyGridPanel.visible & eButtons ! []
+        ?eTiles[y][x] = 0 | eTiles[y][x] = 1 | eTiles[y][x] = 2
+          eButtonText[y][x].text = waterTexture
+        :?eTiles[y][x] = 4
+          eButtonText[y][x].text = hitShipHiddenTexture
+        :?eTiles[y][x] = 5
+          for L1 : placedEnemyShipCoords
+            ?L1.Count() = 1 & L1[0][0] = y & L1[0][1] = x
+              eButtonText[y][x].text = ship1text.text
+            :?L1.Count() > 1
+              for i = 0..L1.Count()-1
+                ?L1[0][0] = L1[1][0] & L1[0][0] = y
+                  ?L1[i][1] = x
+                    ?L1.Count() = 2
+                      eButtonText[y][x].text = ship2horizontal[i]
+                    :?L1.Count() = 3
+                      eButtonText[y][x].text = ship3horizontal[i]
+                    :?L1.Count() = 4
+                      eButtonText[y][x].text = ship4horizontal[i]
+                :?L1[0][1] = L1[1][1] & L1[0][1] = x
+                  ?L1[i][0] = y
+                    ?L1.Count() = 2
+                      eButtonText[y][x].text = ship2vertical[i]
+                    :?L1.Count() = 3
+                      eButtonText[y][x].text = ship3vertical[i]
+                    :?L1.Count() = 4
+                      eButtonText[y][x].text = ship4vertical[i]
+        /* :?eTiles[y][x] = 12
+          ?previewedEnemyShipCoords.Count() = 1 & previewedEnemyShipCoords[0][0] = y & previewedEnemyShipCoords[0][1] = x
+            eButtonText[y][x].text = ship1text.text
+          :?previewedEnemyShipCoords.Count() > 1
+            for i = 0..previewedEnemyShipCoords.Count()-1
+              ?previewedEnemyShipCoords[0][0] = previewedEnemyShipCoords[1][0] & previewedEnemyShipCoords[0][0] = y
+                ?previewedEnemyShipCoords[i][1] = x
+                  ?previewedEnemyShipCoords.Count() = 2
+                    eButtonText[y][x].text = ship2horizontal[i]
+                  :?previewedEnemyShipCoords.Count() = 3
+                    eButtonText[y][x].text = ship3horizontal[i]
+                  :?previewedEnemyShipCoords.Count() = 4
+                    eButtonText[y][x].text = ship4horizontal[i]
+              :?previewedEnemyShipCoords[0][1] = previewedEnemyShipCoords[1][1] & previewedEnemyShipCoords[0][1] = x
+                ?previewedEnemyShipCoords[i][0] = y
+                  ?previewedEnemyShipCoords.Count() = 2
+                    eButtonText[y][x].text = ship2vertical[i]
+                  :?previewedEnemyShipCoords.Count() = 3
+                    eButtonText[y][x].text = ship3vertical[i]
+                  :?previewedEnemyShipCoords.Count() = 4
+                    eButtonText[y][x].text = ship4vertical[i] */
+        :?eTiles[y][x] = 3
+          eButtonText[y][x].text = hitTileTexture
+        :?eTiles[y][x] = 6
+          eButtonText[y][x].text = flagTexture
+?flashTimer <= flashDuration + 1
+  flashTimer ++
+
+// Disable updates
+?(playerTurn | !playerGridPanel.visible) & flashTimer > flashDuration + 1
+  allowUpdates = false
+
 
 disable pause
