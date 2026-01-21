@@ -17,7 +17,14 @@ Discord: seltos7224
 // 6 - marker
 // 10+ - ship tile preview (subtract 10 for the non-preview-equivalent tile value)
 
-  // Gameplay
+// ===================================
+// SECTION Data
+// ===================================
+
+// > -------- <
+// SECTION Vars
+// > -------- <
+  // ANCHOR Gameplay-related
 var shipTileCount = 20  // Total ship tiles per board
 var ships = [4, 3, 3, 2, 2, 2, 1, 1, 1, 1]  // All ships and sizes
 var selectedShipSize = 4
@@ -45,7 +52,6 @@ var ship4horizontal = ["#┌o#\n▼▲▼▲", "_▄╞╬\n▼▲▼▲", "#┌
 var ship2vertical = ["#^##\n/ \#", "│⌐φ•\n\_/#"]
 var ship3vertical = ["#^##\n/ \#", "│ φ═\n│ │#", "\☼/#\n#¯##"]
 var ship4vertical = ["#^##\n/ \#", "│ │#\n│ φ═", "│ φ═\n│ │#", "\☼/#\n#V##"]
-/// make these enemy ascii
 var ship1textEnemy = "[│##\n▼▲▼#"
 var ship2horizontalEnemy = ["##[│\n▼▲▼▲", "#,##\n▼▲▼#"]
 var ship3horizontalEnemy = ["##{═\n▼▲▼▲", "╤#╞╪\n▼▲▼▲", "#,##\n▼▲▼#"]
@@ -65,8 +71,11 @@ var eHitTile  // P tile that will be attacked
 var eHitList = []  // List of tiles that the enemy hit (in order)
 var possibleHitList = []  // List of guessed coordinates for the next attack on a hit ship
 var __randInt  // A random int used with possibleHitList
+var flashList = []  // A list of items that will flash (red)
+var flashListCopy = []  // A copy of flashListCopy for error handling
+flashListCopy = MatrixCopy(flashList)
 
-  // UI
+  // ANCHOR UI
 var playButton  // Start the game
 var playButtonText
 var exitButton  // Exit to main menu, then exit loc
@@ -131,7 +140,7 @@ var infoText
 var infoButton  // infoPanel toggle button
 var infoBtnText
 
-  // Turns and score
+  // ANCHOR Turns and score
 var playerTurn = true  // Tracks turns
 var turnCount = 1  // Counts turns for scoring
 var pHitScore = 0
@@ -140,8 +149,12 @@ var pSinkScore = 0
 var eSinkScore = 0
 var score  // Total score
 
+// > ---- <
+// !SECTION
+// > ---- <
 
-// Add UI components
+
+// ANCHOR Add UI components
 ?loc = "Waterfall" & loc.begin
   // Play button
   playButton = AddUI(button, center_center, center_center, 30, 7, 20, -2)
@@ -430,48 +443,58 @@ asciiend
     ^"\n" +
     ^"[color=#3ba2d5]Smooth seas to ye![/color]"
 
-// Marker mode
-?key = "ability2Begin"
+// ===================================
+// !SECTION
+// ===================================
+
+
+// ===================================
+// SECTION Gameplay
+// ===================================
+
+// ANCHOR Marker mode
+?key = "ability2Begin"  // "Ctrl"
   ToggleMarkerMode()
 ?markerMode = true
   playerGridPanel.color = "#429367" //"#17ac5a"
   enemyGridPanel.color = "#429367" //"#17ac5a"
-  pCoords = "#429367"
-  eCoords = "#429367"
+  pCoords.color = "#429367"
+  eCoords.color = "#429367"
   markerButton.style = 0
   markerButton.text = "x"
   markerBtnText.visible = true
 :
   playerGridPanel.color = "#4c7589" //"#00aaff"
   enemyGridPanel.color = "#4c7589" //"#00aaff"
-  pCoords = "#4c7589"
-  eCoords = "#4c7589"
+  pCoords.color = "#4c7589"
+  eCoords.color = "#4c7589"
   markerButton.style = 1
   markerButton.text = "▼"
   markerBtnText.visible = false
 
-// Rotate ships with Shift when rotateButton is visible
-?rotateButton.visible & key = "ability1Begin"
+// Rotate ships with a keyboard shortcut
+?rotateButton.visible & key = "ability1Begin"  // "Shift"
   RotateShip()
 
-// Delay between turns and shooting animations
+// ANCHOR Delay between turns and shooting animations
 var turnDelay = 0
->@turnDelay@
-?turnDelay > 0
-  turnDelay --
+var defaultTurnDelay = 30
+?turnDelay >= 0
   ?pButtons[0][0].visible
     for y = 0..9
       for x = 0..9
         pButtons[y][x].visible = false
         eButtons[y][x].visible = false
-  :?turnDelay <= 0
+  :?turnDelay = 0
     for y = 0..9
       for x = 0..9
         pButtons[y][x].visible = "inherit"
         eButtons[y][x].visible = "inherit"
+    allowUpdates = true
+  turnDelay --
         
 
-// Enemy turn
+// ANCHOR Enemy turn
 :?!playerTurn
   // Reset eHitTile and possibleHitList
   eHitTile = -1
@@ -645,20 +668,20 @@ var turnDelay = 0
   // Apply the attack
   ?[0, 1, 6].Contains(eHitTile)  // (The shot hits water.)
     pTiles[eHitY][eHitX] = 3
-    turnDelay = 31
+    turnDelay = defaultTurnDelay
     playerTurn = true
     turnCount ++
   :?eHitTile = 2  // (The shot hits a ship. Continue the turn.)
     pTiles[eHitY][eHitX] = 4
     eHitList.Add([eHitY, eHitX])
-    turnDelay = 31
+    turnDelay = defaultTurnDelay
     KillShip(pTiles, eHitY, eHitX)
     eHitScore ++
   // :  // (Insurance. If eHitTile is in [3, 4, 5], skip turn to escape error.)
   //   playerTurn = true
   //   turnCount ++
 
-// Ship counter
+// ANCHOR Ship counter
 var pSunk = [pSinkScore, 10]
 var eSunk = [eSinkScore, 10]
 ?pSunk[0] ! pSinkScore
@@ -677,6 +700,7 @@ var spaceFiller = ""
   spaceFiller = ""
 shipCounter.text = "[color=#999999]#Turn " + turnCount + "[/color]\n[color=#3ba2d5]" + spaceFiller + eSunk[1] + "[/color]" + "[color=#999999] || [/color]" + "[color=#ffa800]" + pSunk[1] + "[/color]"
 
+// ANCHOR ShipWasNotSelectedError
 // Throw an error when a ship is not selected while placing them (player)
 var selectionErrorMessage = "Please select a ship."
 var selectionErrTimer = 90
@@ -684,6 +708,7 @@ var selectionErrTimer = 90
   >`@screen.w / 2 - string.Size(selectionErrorMessage) / 2@,1,#red,@selectionErrorMessage@
   selectionErrTimer ++
 
+// ANCHOR Confirm ships
 // If the player has placed all 20 ship tiles, "Confirm" will start the game
 var printError = false
 var shipErrorMessage = "Place all your ships before starting the game."
@@ -700,14 +725,14 @@ var boolSwitchTimer = 90
       >`@screen.w / 2 - string.Size(shipErrorMessage) / 2@,1,#red,@shipErrorMessage@
       boolSwitchTimer ++
 
-// Calculate score
+// ANCHOR Calculate score
 var gamemodeModifier = [0.55, 0.7, 0.85, 1]  // easy, medium, hard, expert
 score = math.RoundToInt(math.Max(0, ((pHitScore + pSinkScore) * 70 / 40) - ((eHitScore + eSinkScore) * 40 / 40) + (math.Max(0, math.Floor(31 - turnCount * 0.5)) * 30 / 30)) * gamemodeModifier[gamemode - 1])
   // Decrease turnCount multiplier (k) softer punishment. k = 0.6 yields bonus pts up to turn 50 (30/k turns).
   // Soft cap formula (harsher punishment for letting the enemy hit you at the beginning, then it evens out at the end. p (power) = 0.8 yields max punishment of 50.5 points) -> "...- ((eHitScore + eSinkScore) ^ 0.8 * 70 / 40) +..."
   // Raw score range: [0, 70]; Adapted: [0, 100]
 
-// Victory check
+// ANCHOR Victory check
 ?pHitScore = 20
   for y = 0..9
     for x = 0..9
@@ -736,6 +761,7 @@ score = math.RoundToInt(math.Max(0, ((pHitScore + pSinkScore) * 70 / 40) - ((eHi
   victoryText.text = "You Lost!\nScore: " + score
 
 
+// ANCHOR Most key shortcuts
 // In a pop-up, "<-" & "->" (or "A" & "D") change selected button, "C" confirms, "X" cancels
   // Cooldown for the "X" key, preventing double commands
 var exitShortcutCooldown = 0
@@ -834,10 +860,11 @@ var default_cd_5f = 5
         break
 
 
-// Info window
+// ANCHOR Info window
 ?!bgPanel.visible
   ?infoPanel.visible
     playButton.visible = false
+    playButtonText.visible = false
     easyModeButton.visible = false
     mediumModeButton.visible = false
     hardModeButton.visible = false
@@ -846,6 +873,7 @@ var default_cd_5f = 5
     infoBtnText.visible = true
   :
     playButton.visible = true
+    playButtonText.visible = true
     easyModeButton.visible = true
     mediumModeButton.visible = true
     hardModeButton.visible = true
@@ -853,16 +881,117 @@ var default_cd_5f = 5
     infoButton.text = "i"
     infoBtnText.visible = false
 
-// Set exitButton function
+// ANCHOR Set exitButton function
 ?!playButton.visible & !infoPanel.visible
   exitButton.SetPressed(ExitToMenu)
 :
   exitButton.SetPressed(loc.Leave)
 
-// Toggle playButtonText
-playButtonText.visible = playButton.visible
+// ANCHOR Enable/disable ship choice buttons
+// Track the type of placed ships, disable buttons if all ships of that size are placed
+var placedShips = [0, 0, 0, 0]  // 1, 2, 3, 4 tiles in order
+?placedShips[0] = 4
+  ship1.SetPressed(Nothing)
+  ship1.tcolor = "#555577"
+  ship1.bcolor = ship1.tcolor
+  ship1text.color = ship1.tcolor
+  ?selectedShipSize = 1
+    selectedShipSize = 0
+:
+  ship1.SetPressed(SelectShip)
+  ship1.tcolor = "#ffffff"
+  ship1.bcolor = ship1.tcolor
+  ship1text.color = ship1.tcolor
+?placedShips[1] = 3
+  ship2.SetPressed(Nothing)
+  ship2.tcolor = "#555577"
+  ship2.bcolor = ship2.tcolor
+  ship2text.color = ship2.tcolor
+  ?selectedShipSize = 2
+    selectedShipSize = 0
+:
+  ship2.SetPressed(SelectShip)
+  ship2.tcolor = "#ffffff"
+  ship2.bcolor = ship2.tcolor
+  ship2text.color = ship2.tcolor
+?placedShips[2] = 2
+  ship3.SetPressed(Nothing)
+  ship3.tcolor = "#555577"
+  ship3.bcolor = ship3.tcolor
+  ship3text.color = ship3.tcolor
+  ?selectedShipSize = 3
+    selectedShipSize = 0
+:
+  ship3.SetPressed(SelectShip)
+  ship3.tcolor = "#ffffff"
+  ship3.bcolor = ship3.tcolor
+  ship3text.color = ship3.tcolor
+?placedShips[3] = 1
+  ship4.SetPressed(Nothing)
+  ship4.tcolor = "#555577"
+  ship4.bcolor = ship4.tcolor
+  ship4text.color = ship4.tcolor
+  ?selectedShipSize = 4
+    selectedShipSize = 0
+:
+  ship4.SetPressed(SelectShip)
+  ship4.tcolor = "#ffffff"
+  ship4.bcolor = ship4.tcolor
+  ship4text.color = ship4.tcolor
 
-// Set gamemode
+?selectedShipSize = 0
+  for i = 1..4
+    ?selectedShipSize < 1
+      selectedShipSize = 4
+    ?placedShips[selectedShipSize - 1] = 5 - selectedShipSize
+      selectedShipSize --
+    :
+      break
+
+?selectedShipSize = 1
+  ship1.style = 3
+  ship2.style = 1
+  ship3.style = 1
+  ship4.style = 1
+:?selectedShipSize = 2
+  ship1.style = 1
+  ship2.style = 3
+  ship3.style = 1
+  ship4.style = 1
+:?selectedShipSize = 3
+  ship1.style = 1
+  ship2.style = 1
+  ship3.style = 3
+  ship4.style = 1
+:?selectedShipSize = 4
+  ship1.style = 1
+  ship2.style = 1
+  ship3.style = 1
+  ship4.style = 3
+:
+  ship1.style = 1
+  ship2.style = 1
+  ship3.style = 1
+  ship4.style = 1
+
+// ANCHOR ConfirmPreviewedShipAlert
+// Prints "Press on the previewed ship to confirm its placement."
+var printPreviewInstructions = false
+var dontPrintPreviewInstructions = false
+var previewInstructionMessage = "Press on the previewed ship to confirm its placement."
+?printPreviewInstructions = true
+  >`@screen.w / 2 - string.Size(previewInstructionMessage) / 2@,2,#c523c5,@previewInstructionMessage@
+
+// ===================================
+// !SECTION
+// ===================================
+
+
+// ===================================
+// SECTION Functions
+// ===================================
+
+// ANCHOR Set gamemode
 func SetMode (btn)
   ?btn = easyModeButton
     gamemode = 1
@@ -889,7 +1018,7 @@ func SetMode (btn)
   //   hardModeButton.style = 1
   //   expertModeButton.style = 3
 
-// Start the game
+// ANCHOR Start the game
 func Start ()
   // Reset score
   pHitScore = 0
@@ -900,6 +1029,7 @@ func Start ()
 
   // UI
   playButton.visible = false
+  playButtonText.visible = false
   easyModeButton.visible = false
   mediumModeButton.visible = false
   hardModeButton.visible = false
@@ -938,7 +1068,7 @@ func Start ()
   // Allow array updates
   allowUpdates = true
 
-// Exit to Main Menu
+// ANCHOR Exit to Main Menu
 func ExitToMenu (btn)
   // If exiting mid-game, confirm action
   ?btn = exitButton
@@ -959,6 +1089,7 @@ func ExitToMenu (btn)
 
   // UI
   playButton.visible = true
+  playButtonText.visible = true
   easyModeButton.visible = true
   mediumModeButton.visible = true
   hardModeButton.visible = true
@@ -991,7 +1122,7 @@ func ExitToMenu (btn)
   // Enable array updates
   allowUpdates = false
 
-// Cancel an action from a pop-up
+// ANCHOR Cancel an action from a pop-up
 func CancelAction (btn)
   // Hide the pop-up
   btn.parent.visible = false
@@ -1004,7 +1135,7 @@ func CancelAction (btn)
         ?enemyGridPanel.visible
           eButtons[y][x].visible = "inherit"
 
-// Generate boards
+// ANCHOR Generate boards
 func GenerateMap ()
   // Show/hide boards
   playerGridPanel.visible = true
@@ -1030,7 +1161,7 @@ func GenerateMap ()
     GenerateShips(i)
   BoardReset(pTiles)
 
-// Generate ships (enemy)
+// ANCHOR Generate ships (enemy)
 func GenerateShips (shipSize)
   // Add a ghost board of eTiles
   var ghostTiles = BoardCopy(eTiles)
@@ -1115,7 +1246,7 @@ func GenerateShips (shipSize)
     for x = 0..9
       eTiles[y][x] = ghostTiles[y][x]
 
-// Select ship (by size)
+// ANCHOR Select ship (by size)
 func SelectShip (btn)
   ?btn = ship4
     selectedShipSize = 4
@@ -1126,7 +1257,7 @@ func SelectShip (btn)
   :?btn = ship1
     selectedShipSize = 1
 
-// Rotate ship
+// ANCHOR Rotate ship
 func RotateShip ()
   placeHorizontal = !placeHorizontal
   ?placeHorizontal
@@ -1143,84 +1274,7 @@ asciiend
     rotateButton.w = 5
     rotateButton.h = 4
 
-// Track the type of placed ships, disable buttons if all ships of that size are placed
-var placedShips = [0, 0, 0, 0]  // 1, 2, 3, 4 tiles in order
-?placedShips[0] = 4
-  ship1.SetPressed(Nothing)
-  ship1.tcolor = "#555577"
-  ship1.bcolor = ship1.tcolor
-  ship1text.color = ship1.tcolor
-  ?selectedShipSize = 1
-    selectedShipSize = 0
-:
-  ship1.SetPressed(SelectShip)
-  ship1.tcolor = "#ffffff"
-  ship1.bcolor = ship1.tcolor
-  ship1text.color = ship1.tcolor
-?placedShips[1] = 3
-  ship2.SetPressed(Nothing)
-  ship2.tcolor = "#555577"
-  ship2.bcolor = ship2.tcolor
-  ship2text.color = ship2.tcolor
-  ?selectedShipSize = 2
-    selectedShipSize = 0
-:
-  ship2.SetPressed(SelectShip)
-  ship2.tcolor = "#ffffff"
-  ship2.bcolor = ship2.tcolor
-  ship2text.color = ship2.tcolor
-?placedShips[2] = 2
-  ship3.SetPressed(Nothing)
-  ship3.tcolor = "#555577"
-  ship3.bcolor = ship3.tcolor
-  ship3text.color = ship3.tcolor
-  ?selectedShipSize = 3
-    selectedShipSize = 0
-:
-  ship3.SetPressed(SelectShip)
-  ship3.tcolor = "#ffffff"
-  ship3.bcolor = ship3.tcolor
-  ship3text.color = ship3.tcolor
-?placedShips[3] = 1
-  ship4.SetPressed(Nothing)
-  ship4.tcolor = "#555577"
-  ship4.bcolor = ship4.tcolor
-  ship4text.color = ship4.tcolor
-  ?selectedShipSize = 4
-    selectedShipSize = 0
-:
-  ship4.SetPressed(SelectShip)
-  ship4.tcolor = "#ffffff"
-  ship4.bcolor = ship4.tcolor
-  ship4text.color = ship4.tcolor
-
-?selectedShipSize = 1
-  ship1.style = 3
-  ship2.style = 1
-  ship3.style = 1
-  ship4.style = 1
-:?selectedShipSize = 2
-  ship1.style = 1
-  ship2.style = 3
-  ship3.style = 1
-  ship4.style = 1
-:?selectedShipSize = 3
-  ship1.style = 1
-  ship2.style = 1
-  ship3.style = 3
-  ship4.style = 1
-:?selectedShipSize = 4
-  ship1.style = 1
-  ship2.style = 1
-  ship3.style = 1
-  ship4.style = 3
-:
-  ship1.style = 1
-  ship2.style = 1
-  ship3.style = 1
-  ship4.style = 1
-
-// Preview and place ships (player)
+// ANCHOR Preview and place ships (player)
 func AddShips (tile)
   // Allow updates
   allowUpdates = true
@@ -1297,8 +1351,8 @@ func AddShips (tile)
           :?(tileListX[selectedShipSize-1] > 9 | badIDX) & tileListX[selectedShipSize-1] >= originalFirstTileX & firstTileX > 0
             firstTileX --
           :
-            tile.tcolor = "#ff0000"
-            allowUpdates = true
+            Flash(pButtonText[y][x], "text", "#ff0000", pButtonText[y][x].color, 20)
+            dontPrintPreviewInstructions = true
             break
           tile2Y = firstTileY + (1 * dY)
           tile2X = firstTileX + (1 * dX)
@@ -1317,7 +1371,11 @@ func AddShips (tile)
           previewTiles[previewShipYX[i][0]][previewShipYX[i][1]] = 12
           previewedShipCoords.Add([previewShipYX[i][0], previewShipYX[i][1]])
         break
-    printPreviewInstructions = true
+    ?dontPrintPreviewInstructions
+      dontPrintPreviewInstructions = false
+      printPreviewInstructions = false
+    :
+      printPreviewInstructions = true
 
   // Confirm previewed ship
   :?previewTiles[y][x] = 12
@@ -1348,8 +1406,7 @@ func AddShips (tile)
   
   // Wrong placement animation
   :
-    pButtonText[y][x].color = "#ff0000"
-    allowUpdates = true
+    Flash(pButtonText[y][x], "text", "#ff0000", pButtonText[y][x].color, 20)
 
   // Update restricted tiles
   for y = 0..9
@@ -1382,7 +1439,8 @@ func AddShips (tile)
     for x = 0..9
       pTiles[y][x] = previewTiles[y][x]
 
-// Add ships manually (player)
+// TODO Multiplayer mode
+// .ANCHOR Add ships manually (player)
 /* func AddShip_s (tile)
   // Add ship tiles one by one
   var y = (tile.y - 1) / (playerGridPanel.h / 10)
@@ -1401,7 +1459,7 @@ func AddShips (tile)
     pButtonText[y][x].text = "2"
     pButtonText[y][x].color = "#ffff77" */
 
-// Add markers and hit ships
+// ANCHOR Add markers and hit ships
 func AddMarker (tile)
   // Allow updates
   allowUpdates = true
@@ -1443,7 +1501,7 @@ func AddMarker (tile)
       Tiles[y][x] = 3
       playerTurn = false
 
-// Kill ships
+// ANCHOR Kill ships
 func KillShip (Tile, y, x)
   var hitTiles = [[y, x]]
   var notDead = false
@@ -1499,7 +1557,7 @@ func KillShip (Tile, y, x)
   :
     eSinkScore += SinkScore
 
-// Reset a board to empty
+// ANCHOR Reset a board to empty
 func BoardReset (board)
   board.Clear()
   for y = 0..9
@@ -1508,7 +1566,7 @@ func BoardReset (board)
       row.Add(1)
     board.Add(row)
 
-// Copy a board
+// ANCHOR Copy a board
 func BoardCopy (board)
   var column = []
   for y = 0..9
@@ -1518,21 +1576,27 @@ func BoardCopy (board)
     column.Add(row)
   return column
 
+// ANCHOR Copy a matrix/array of arrays
+func MatrixCopy (arr)
+  var copy = []
+  for i : arr
+    ?Type(i) = "array"
+      copy.Add(MatrixCopy(i))
+    :
+      copy.Add(i)
+  return copy
+
+// ANCHOR PlaceAllShipsError
 // Displays the error message "Place all ships" by resetting its timer
 func ResetErrorTimer ()
   boolSwitchTimer = 0
 
+// ANCHOR SelectAShipError
 // Displays the error message "Select a ship" by resetting its timer
 func PrintSelectionError ()
   selectionErrTimer = 0
 
-// Prints "Press on the previewed ship to confirm its placement."
-var printPreviewInstructions = false
-var previewInstructionMessage = "Press on the previewed ship to confirm its placement."
-?printPreviewInstructions = true
-  >`@screen.w / 2 - string.Size(previewInstructionMessage) / 2@,2,#c523c5,@previewInstructionMessage@
-
-// Start gameplay
+// ANCHOR Start gameplay
 func StartGameplay ()
   // Allow updates
   allowUpdates = true
@@ -1562,17 +1626,58 @@ func StartGameplay ()
       eButtons[y][x].visible = "inherit"
       pButtons[y][x].SetPressed(AddMarker)
 
-// Generate a random number in a given range
+// ANCHOR Generate a random number in a given range
 func RandIntInRange (min, max)
   // return math.FloorToInt(((rng * 0.61803398875) % 1) * (max + 1)) - min
   return (rng % (max - min + 1)) + min
 
-// Toggle marker mode on/off
+// ANCHOR Toggle marker mode on/off
 func ToggleMarkerMode ()
   ?enemyGridPanel.visible
     markerMode = !markerMode
 
-// Add a new ui element
+// ANCHOR Flash
+func Flash (component, type, flashColor, prevColor, duration)
+  // flashListCopy components:
+  // [component, "type", "#flash color", "#original color", current duration, max duration]
+
+  ?flashColor = prevColor
+    ?flashColor = "#ff0000"
+      allowUpdates = true
+    return
+  
+  var frequency = 3
+  ?flashList.Count()
+    for i = 0..flashList.Count()-1
+      ?flashList[i][0] = component
+        // Flash
+        var elapsedTime
+        elapsedTime = flashList[i][5] - flashList[i][4]
+        ?elapsedTime % (frequency * 2) < frequency
+          ?type = "button"
+            component.bcolor = flashColor
+            component.tcolor = flashColor
+          :
+            component.color = flashColor
+        :
+          ?type = "button"
+            component.bcolor = prevColor
+            component.tcolor = prevColor
+          :
+            component.color = prevColor
+        flashList[i][4] -= 1
+        ?flashList[i][4] <= 0
+          ?type = "button"
+            component.bcolor = prevColor
+            component.tcolor = prevColor
+          :
+            component.color = prevColor
+          flashList.RemoveAt(i)
+        return
+  
+  flashList.Add([component, type, flashColor, prevColor, duration, duration])
+
+// ANCHOR Add a new UI element
 func AddUI (Type, Anchor, Dock, wd, hi, xPos, yPos)
   var comp
   ?Type = "button"
@@ -1591,52 +1696,50 @@ func AddUI (Type, Anchor, Dock, wd, hi, xPos, yPos)
   comp.y = yPos
   return comp
 
-// Toggle panel visibility on button press
+// ANCHOR Toggle panel visibility on button press
 func TogglePanel (btn)
   var panel
   ?btn = infoButton
     panel = infoPanel
   panel.visible = !panel.visible
 
-// Does nothing. For buttons
+// ANCHOR Does nothing. For buttons
 func Nothing ()
   return
 
-  
-// Textures
+// ===================================
+// !SECTION
+// ===================================
+
+
+// ===================================
+// SECTION Board updates & art
+// ===================================
+
+// ANCHOR Textures
 var waterTexture = "#. #\n# °#"
-var flagTexture = "#│▶#\n-¯-#"
+var flagTexture = "#│▶#\n⌐¯¬#"
 // flagTexture = "#│>#\n#¯-#"
+// flagTexture = "#│▶#\n#¯-#"
 // flagTexture = "#│>#\n-¯-#"
+// flagTexture = "#│▶#\n-¯-#"
 // flagTexture = "#│>#\n⌐¯¬#"
+// flagTexture = "#│▶#\n⌐¯¬#"
 // flagTexture = "#│>#\n┌┴┐#"
 // flagTexture = "#│▶#\n┌┴┐#"
+// flagTexture = "#│>#\n─┴─#"
 // flagTexture = "#│▶#\n─┴─#"
 // flagTexture = "#│>#\n´¯`#"
+// flagTexture = "#│▶#\n´¯`#"
 var hitTileTexture = "#x #\n# x#"
-var hitShipHiddenTexture = "#\\/#\n#/\#"
-var flashDuration = 10
-var flashTimer = flashDuration + 2
+var hitShipHiddenTexture = "#\\/#\n#/\#"  // draws "X" on hit ships
 
-// Update text on tile buttons
+// ANCHOR Update text on tile buttons
 ?allowUpdates
   for y = 0..9
-    for x = 0..9
-      // ?pTiles[y][x] = 0 & enemyGridPanel.visible
-      //   pButtonText[y][x].text = "1"
-      // :
-      //   pButtonText[y][x].text = pTiles[y][x] + ""
-      // ?eTiles[y][x] = 0 | eTiles[y][x] = 2
-      //   eButtonText[y][x].text = "1"
-      // :
-      //   eButtonText[y][x].text = eTiles[y][x] + ""
-      
+    for x = 0..9      
       // Player tile color
-      ?pButtonText[y][x].color = "#ff0000" & flashTimer > flashDuration + 1
-        flashTimer = 0
-      ?pButtonText[y][x].color = "#ff0000" & flashTimer <= flashDuration
-        pButtonText[y][x].color = "#ff0000"
-      :?!enemyGridPanel.visible & pTiles[y][x] = 0
+      ?!enemyGridPanel.visible & pTiles[y][x] = 0
         pButtonText[y][x].color = "#555577"
       :?pTiles[y][x] = 0 | pTiles[y][x] = 1
         pButtonText[y][x].color = "#3ba2d5" //"#00aaff"
@@ -1655,11 +1758,7 @@ var flashTimer = flashDuration + 2
       :?pTiles[y][x] >= 10
         pButtonText[y][x].color = "#690069"
       // Enemy tile color
-      ?eButtonText[y][x].color = "#ff0000" & flashTimer > flashDuration + 1
-        flashTimer = 0
-      ?eButtonText[y][x].color = "#ff0000" & flashTimer <= flashDuration
-        eButtonText[y][x].color = "#ff0000"
-      :?eTiles[y][x] = 0
+      ?eTiles[y][x] = 0
         eButtonText[y][x].color = "#3ba2d5" //"#00aaff" //"#555577"
       :?eTiles[y][x] = 1
         eButtonText[y][x].color = "#3ba2d5" //"#00aaff"
@@ -1779,12 +1878,22 @@ var flashTimer = flashDuration + 2
           eButtonText[y][x].text = hitTileTexture
         :?eTiles[y][x] = 6
           eButtonText[y][x].text = flagTexture
-?flashTimer <= flashDuration + 1
-  flashTimer ++
 
-// Disable updates
-?(playerTurn | !playerGridPanel.visible) & flashTimer > flashDuration + 1
+// ANCHOR Flash (red)
+?flashListCopy.Count() | flashList.Count()
+  for i : flashListCopy
+    Flash(i[0], i[1], i[2], i[3], i[4])
+
+// ANCHOR Disable updates
+?playerTurn | turnDelay > 1 | !playerGridPanel.visible
+  /* FIXME Updates are not being disabled when it's flashing time or the enemy hits the player's ship:
+    - 1. flashTimer > flashDuration + 1 only when nothing is flashing, so updates aren't falsed when there is flashing (solution in discord);
+    - 2. ~~playerTurn = false & playerGridPanel.visible = true when the enemy hits the player's ship, so updates aren't falsed, likely causing lag.~~ Resolved with |turnDelay>1, but hard mode and by extension possibly medium mode too kill the ship but don't display all attacks, only the end result. Make each individual hit animated */
   allowUpdates = false
+
+// ===================================
+// !SECTION
+// ===================================
 
 
 disable hud b
