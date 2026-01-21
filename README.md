@@ -8,7 +8,7 @@ Step 1: After freshly opening the game, paste this into your mindstone. Comment 
 ```
 sys.cacheRemoteFiles = false
 var directory =
-^"https://raw.githubusercontent.com/"
+^  "https://raw.githubusercontent.com/"
 ^+ "Seltos7224/Stonescript/refs/heads/"
 ^+ "main/"
 sys.SetFileUrl(directory)
