@@ -538,18 +538,22 @@ var shotCanvas = AddUI("canvas", "top_left", "top_left", playerGridPanel.w + ene
     var projSpeed
     var setCanvasY
     var setCanvasX
-    //FIXME shot anim
+    //FIXME There is no animation or delay when the player hits a ship and gets an extra turn
+    //FIXME attacks start from the player on enemy turn (if the enemy gets an extra turn, the shot goes haywire)
+    ?prevEHitListCount[1] ! prevEHitListCount[2]
+      isEnemyAttack = true
+    //FIXME shot anim (player anim starts from the right spot but doesn't end in the right spot)
     ?turnDelay >= delayTime - 1
-      ?prevEHitListCount[1] ! prevEHitListCount[2]
-        isEnemyAttack = true
       ?isEnemyAttack
         randWeapon = enemyWeaponAbsPos[RandIntInRange(0, enemyWeaponAbsPos.Count()-1)]
+        endY = pButtons[eHitY][eHitX].absoluteY
+        endX = pButtons[eHitY][eHitX].absoluteX
       :
         randWeapon = playerWeaponAbsPos[RandIntInRange(0, playerWeaponAbsPos.Count()-1)]
+        endY = eButtons[playerLastAttack[0]][playerLastAttack[1]].absoluteY
+        endX = eButtons[playerLastAttack[0]][playerLastAttack[1]].absoluteX
       startY = randWeapon[0]
       startX = randWeapon[1]
-      endY = eHitY
-      endX = eHitX
       distY = endY - startY
       distX = endX - startX
       pathLength = math.Sqrt(distY * distY  +  distX * distX)
