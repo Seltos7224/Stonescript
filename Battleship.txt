@@ -62,14 +62,18 @@ var ship4verticalEnemy = ["##^#\n#/ \\", "#│ │\n═α │", "═α │\n#│
 var previewedShipCoords = []  // Storing previewed ship coordinates
 var placedShipCoords = []  // Storing placed ship coordinates
 var placedShipCoordsFlattened = []  // Storing placed ship coordinates (flattened)
+var playerWeaponAbsPos = [] // Coordinates of player weapons (offset to where the shot starts)
 var placedEnemyShipCoords = []  // Storing placed enemy ship coordinates
+var enemyWeaponAbsPos = [] // Coordinates of enemy weapons (offset to where the shot starts)
 var playerMarkers = []  // Player marker list ([y, x, previous_ID])
 var enemyMarkers = []  // Enemy marker list ([y, x, previous_ID])
 var eHitY  // Y coordinate of the P tile that will be attacked
 var eHitX  // X coordinate of the P tile that will be attacked
 var eHitTile  // P tile that will be attacked
 var eHitList = []  // List of tiles that the enemy hit (in order)
+var prevEHitListCount = [eHitList.Count(), 0, 0]  // Tracks new attacks
 var possibleHitList = []  // List of guessed coordinates for the next attack on a hit ship
+var playerLastAttack = []  // Y and X coordinates of the last tile attacked by the player
 var __randInt  // A random int used with possibleHitList
 var flashList = []  // A list of items that will flash (red)
 var flashListCopy = []  // A copy of flashListCopy for error handling
@@ -476,10 +480,28 @@ asciiend
 ?rotateButton.visible & key = "ability1Begin"  // "Shift"
   RotateShip()
 
+// Tracks new enemy hits
+prevEHitListCount[2] = prevEHitListCount[1] // delay
+?prevEHitListCount[0] ! eHitList.Count()
+  prevEHitListCount[1] = prevEHitListCount[0]
+  prevEHitListCount[0] = eHitList.Count()
+
 // ANCHOR Delay between turns and shooting animations
 var turnDelay = 0
 var defaultTurnDelay = 30
+var delayTime = 0
+var delayTimeCaptured = false
+var isEnemyAttack
+//
+var shotCanvas = AddUI("canvas", "top_left", "top_left", playerGridPanel.w + enemyGridPanel.w + 2, playerGridPanel.h, playerGridPanel.absoluteX, playerGridPanel.absoluteY) //TODO move line up
+//
 ?turnDelay >= 0
+  ?!delayTimeCaptured
+    delayTime = turnDelay
+    delayTimeCaptured = true
+
+  shotCanvas.Set("#")
+
   ?pButtons[0][0].visible
     for y = 0..9
       for x = 0..9
@@ -491,8 +513,71 @@ var defaultTurnDelay = 30
         pButtons[y][x].visible = "inherit"
         eButtons[y][x].visible = "inherit"
     allowUpdates = true
+    delayTimeCaptured = false
+    isEnemyAttack = false
+  :
+    var blockUp = "▀"
+    var blockDown = "▄"
+    var lineUp = "‾"
+    var lineMid = "—"
+    var lineDown = "_"
+
+    var randWeapon
+    var weaponType
+    var startY
+    var startX
+    var endY
+    var endX
+    var distY
+    var distX
+    var pathLength
+    var dirY
+    var dirX
+    var projY
+    var projX
+    var projSpeed
+    var setCanvasY
+    var setCanvasX
+    //FIXME shot anim
+    ?turnDelay >= delayTime - 1
+      ?prevEHitListCount[1] ! prevEHitListCount[2]
+        isEnemyAttack = true
+      ?isEnemyAttack
+        randWeapon = enemyWeaponAbsPos[RandIntInRange(0, enemyWeaponAbsPos.Count()-1)]
+      :
+        randWeapon = playerWeaponAbsPos[RandIntInRange(0, playerWeaponAbsPos.Count()-1)]
+      startY = randWeapon[0]
+      startX = randWeapon[1]
+      endY = eHitY
+      endX = eHitX
+      distY = endY - startY
+      distX = endX - startX
+      pathLength = math.Sqrt(distY * distY  +  distX * distX)
+      dirY = math.RoundToInt(distY / pathLength)
+      dirX = math.RoundToInt(distX / pathLength)
+      projY = startY
+      projX = startX
+      projSpeed = math.CeilToInt(delayTime / pathLength)
+      weaponType = randWeapon[2]
+
+    ?Type(isEnemyAttack) = "bool"
+      // ?!isEnemyAttack
+        // playerLastAttack //
+        // eButtons[playerLastAttack[0]][playerLastAttack[1]] //
+        projY += dirY * projSpeed
+        projX += dirX * projSpeed
+        setCanvasY = projY - shotCanvas.y
+        setCanvasX = projX - shotCanvas.x
+        ?math.Round(projY) > math.Floor(projY)
+          shotCanvas.Set(setCanvasX, setCanvasY, "#red", blockUp)
+        :
+          shotCanvas.Set(setCanvasX, setCanvasY, "#red", blockDown)
+      // :
+        // eHitY, eHitX //
+        // eHitTile? ebuttons[ehy][ehx]? //
   turnDelay --
-        
+  >@input.x@ - @startX@
+  >`0,1,@input.y@ - @startY@
 
 // ANCHOR Enemy turn
 :?!playerTurn
@@ -1061,6 +1146,8 @@ func Start ()
   placedShipCoordsFlattened.Clear()
   placedEnemyShipCoords.Clear()
   eHitList.Clear()
+  playerWeaponAbsPos.Clear()
+  enemyWeaponAbsPos.Clear()
   
   // Generate boards
   GenerateMap()
@@ -1111,6 +1198,7 @@ func ExitToMenu (btn)
   markerButton.visible = false
   markerMode = false
   infoButton.visible = true
+  printPreviewInstructions = false
   
   // Background
   bgPanel.visible = false
@@ -1160,6 +1248,45 @@ func GenerateMap ()
   for i : ships
     GenerateShips(i)
   BoardReset(pTiles)
+
+  // Pinpoint enemy ship weapons
+  for ships : placedEnemyShipCoords
+    ?ships.Count() > 1
+      var yAbsPos
+      var xAbsPos
+      var wepType
+      // Horizontal ships
+      ?ships[0][0] = ships[1][0]
+        ?ships.Count() = 3
+          yAbsPos = eButtons[ships[0][0]][ships[0][1]].absoluteY
+          xAbsPos = eButtons[ships[0][0]][ships[0][1]].absoluteX + 1
+          wepType = "ballista"
+        :?ships.Count() = 4
+          yAbsPos = eButtons[ships[0][0]][ships[0][1]].absoluteY - 1
+          xAbsPos = eButtons[ships[0][0]][ships[0][1]].absoluteX + 2
+          wepType = "catapult"
+        :
+          continue
+        enemyWeaponAbsPos.Add([yAbsPos, xAbsPos, wepType])
+      // Vertical ships
+      :
+        ?[2, 3].Contains(ships.Count()) // ships.Count() = 2
+          yAbsPos = eButtons[ships[1][0]][ships[1][1]].absoluteY
+          xAbsPos = eButtons[ships[1][0]][ships[1][1]].absoluteX - 1
+          wepType = "cannon"
+        // :?ships.Count() = 3
+        //   yAbsPos = eButtons[ships[1][0]][ships[1][1]].absoluteY
+        //   xAbsPos = eButtons[ships[1][0]][ships[1][1]].absoluteX - 1
+        //   wepType = "cannon"
+        :?ships.Count() = 4
+          yAbsPos = eButtons[ships[1][0]][ships[1][1]].absoluteY + 1
+          xAbsPos = eButtons[ships[1][0]][ships[1][1]].absoluteX - 1
+          wepType = "cannon"
+          enemyWeaponAbsPos.Add([yAbsPos, xAbsPos, wepType])
+          yAbsPos = eButtons[ships[2][0]][ships[2][1]].absoluteY
+        :
+          continue
+        enemyWeaponAbsPos.Add([yAbsPos, xAbsPos, wepType])
 
 // ANCHOR Generate ships (enemy)
 func GenerateShips (shipSize)
@@ -1226,7 +1353,7 @@ func GenerateShips (shipSize)
         // Copy placed enemy ship coordinates
         placedEnemyShipCoords[placedEnemyShipCoords.Count()-1].Add(ghostShipYX[i])
       break
-
+  
   // Restrict adjacent tiles
   for y = 0..9
     for x = 0..9
@@ -1459,7 +1586,7 @@ func AddShips (tile)
     pButtonText[y][x].text = "2"
     pButtonText[y][x].color = "#ffff77" */
 
-// ANCHOR Add markers and hit ships
+// ANCHOR Add markers, hit ships (player)
 func AddMarker (tile)
   // Allow updates
   allowUpdates = true
@@ -1500,6 +1627,7 @@ func AddMarker (tile)
     :?Tiles[y][x] = 0 | Tiles[y][x] = 1
       Tiles[y][x] = 3
       playerTurn = false
+    playerLastAttack = [y, x]
 
 // ANCHOR Kill ships
 func KillShip (Tile, y, x)
@@ -1618,6 +1746,45 @@ func StartGameplay ()
 
   // Reset selectedShipSize
   selectedShipSize = 4
+
+  // Pinpoint player ship weapons
+  for ships : placedShipCoords
+    ?ships.Count() > 1
+      var yAbsPos
+      var xAbsPos
+      var wepType
+      // Horizontal ships
+      ?ships[0][0] = ships[1][0]
+        ?ships.Count() = 3
+          yAbsPos = pButtons[ships[2][0]][ships[2][1]].absoluteY
+          xAbsPos = pButtons[ships[2][0]][ships[2][1]].absoluteX + 1
+          wepType = "ballista"
+        :?ships.Count() = 4
+          yAbsPos = pButtons[ships[2][0]][ships[2][1]].absoluteY - 1
+          xAbsPos = pButtons[ships[2][0]][ships[2][1]].absoluteX + 4
+          wepType = "catapult"
+        :
+          continue
+        playerWeaponAbsPos.Add([yAbsPos, xAbsPos, wepType])
+      // Vertical ships
+      :
+        ?[2, 3].Contains(ships.Count()) // ships.Count() = 2
+          yAbsPos = pButtons[ships[1][0]][ships[1][1]].absoluteY
+          xAbsPos = pButtons[ships[1][0]][ships[1][1]].absoluteX + 4
+          wepType = "cannon"
+        // :?ships.Count() = 3
+        //   yAbsPos = pButtons[ships[1][0]][ships[1][1]].absoluteY
+        //   xAbsPos = pButtons[ships[1][0]][ships[1][1]].absoluteX + 4
+        //   wepType = "cannon"
+        :?ships.Count() = 4
+          yAbsPos = pButtons[ships[1][0]][ships[1][1]].absoluteY + 1
+          xAbsPos = pButtons[ships[1][0]][ships[1][1]].absoluteX + 4
+          wepType = "cannon"
+          playerWeaponAbsPos.Add([yAbsPos, xAbsPos, wepType])
+          yAbsPos = pButtons[ships[2][0]][ships[2][1]].absoluteY
+        :
+          continue
+        playerWeaponAbsPos.Add([yAbsPos, xAbsPos, wepType])
   
   // Show buttons on enemy board,
   // enable markers on player board
@@ -1688,6 +1855,8 @@ func AddUI (Type, Anchor, Dock, wd, hi, xPos, yPos)
     comp = ui.AddPanel()
   :?Type = "anim"
     comp = ui.AddAnim()
+  :?Type = "canvas"
+    comp = ui.AddCanvas()
   comp.anchor = Anchor
   comp.dock = Dock
   comp.w = wd
@@ -1886,9 +2055,6 @@ var hitShipHiddenTexture = "#\\/#\n#/\#"  // draws "X" on hit ships
 
 // ANCHOR Disable updates
 ?playerTurn | turnDelay > 1 | !playerGridPanel.visible
-  /* FIXME Updates are not being disabled when it's flashing time or the enemy hits the player's ship:
-    - 1. flashTimer > flashDuration + 1 only when nothing is flashing, so updates aren't falsed when there is flashing (solution in discord);
-    - 2. ~~playerTurn = false & playerGridPanel.visible = true when the enemy hits the player's ship, so updates aren't falsed, likely causing lag.~~ Resolved with |turnDelay>1, but hard mode and by extension possibly medium mode too kill the ship but don't display all attacks, only the end result. Make each individual hit animated */
   allowUpdates = false
 
 // ===================================
